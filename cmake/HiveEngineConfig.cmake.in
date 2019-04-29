@@ -1,0 +1,13 @@
+get_filename_component(HiveEngine_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
+include(CMakeFindDependencyMacro)
+
+list(APPEND CMAKE_MODULE_PATH ${HiveEngine_CMAKE_DIR})
+
+find_package(glm REQUIRED)
+list(REMOVE_AT CMAKE_MODULE_PATH -1)
+
+if(NOT TARGET HiveEngine::HiveEngine)
+    include("${HiveEngine_CMAKE_DIR}/HiveEngineTargets.cmake")
+endif()
+
+set(HiveEngine_LIBRARIES HiveEngine::HiveEngine)
