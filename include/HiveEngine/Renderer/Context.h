@@ -41,7 +41,7 @@ namespace HiveEngineRenderer {
     public:
         std::vector<const char*> validation_layers = {"VK_LAYER_LUNARG_standard_validation"};
         const std::vector<const char*> deviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
-        };
+        
 
         void run(){
             init_window();
