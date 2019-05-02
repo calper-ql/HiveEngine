@@ -6,10 +6,10 @@
 
 namespace HiveEngine {
     int get_major_version(){
-        return 1;
+        return 0;
     }
 
     int get_minor_version(){
-        return 0;
+        return 2;
     }
 }
