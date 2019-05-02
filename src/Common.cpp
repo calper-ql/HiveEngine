@@ -30,8 +30,15 @@ namespace HiveEngine {
         moment_of_inertia = glm::dmat3(0.0f);
     }
 
-    BBX::BBX() {
-        a = glm::dvec3(0.0f, 0.0f, 0.0f);
-        b = glm::dvec3(0.0f, 0.0f, 0.0f);
+    AABB::AABB() {
+        min = glm::dvec3(0.0f, 0.0f, 0.0f);
+        max = glm::dvec3(0.0f, 0.0f, 0.0f);
+    }
+
+    bool AABB::collides(AABB other) {
+        if(max.x < other.min.x || min.x > other.max.x) return false;
+        if(max.y < other.min.y || min.y > other.max.y) return false;
+        if(max.z < other.min.z || min.z > other.max.z) return false;
+        return true;
     }
 }

@@ -20,9 +20,10 @@ find_package(glm REQUIRED)
 set(SOURCES src/HiveEngine.cpp include/HiveEngine/LODSquare.h src/LODSquare.cpp include/HiveEngine/DynamicSphere.h include/HiveEngine/RadialGenerator.h src/RadialGenerator.cpp include/HiveEngine/Texture.h src/DynamicSphere.cpp include/HiveEngine/Entity.h src/Entity.cpp include/HiveEngine/Utilities.h src/Utilities.cpp include/HiveEngine/Common.h src/Common.cpp include/HiveEngine/Mesh.h)
 
 if(BUILD_RENDERER)
-    set(SOURCES ${SOURCES} include/HiveEngine/Renderer/Context.h src/Renderer/Context.cpp include/HiveEngine/Renderer/Vulkan.hpp)
+    set(SOURCES ${SOURCES} include/HiveEngine/Renderer/Context.h src/Renderer/Context.cpp)
 endif(BUILD_RENDERER)
 
+message(STATUS "Sources:    " ${SOURCES})
 add_library(HiveEngine SHARED ${SOURCES})
 
 target_include_directories(HiveEngine

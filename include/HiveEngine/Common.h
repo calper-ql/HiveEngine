@@ -38,12 +38,13 @@ namespace HiveEngine {
         CentralMass();
     };
 
-    class BBX {
-        // Bounding Box
-        glm::dvec3 a;
-        glm::dvec3 b;
+    class AABB {
+        glm::dvec3 min{};
+        glm::dvec3 max{};
 
-        BBX();
+        AABB();
+
+        bool collides(AABB other);
     };
 }
 
