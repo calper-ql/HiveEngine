@@ -5,12 +5,14 @@
 #include <HiveEngine/HiveEngine.h>
 #include <HiveEngine/DynamicSphere.h>
 #include <HiveEngine/Renderer/Context.h>
+#include <HiveEngine/Renderer/TestDirective.h>
 
 int main(int argc, char* argv[]){
     std::cout << "HiveEngine version: " << HiveEngine::get_major_version()
     << "." << HiveEngine::get_minor_version() << std::endl;
 
     HiveEngineRenderer::Context context;
+    auto directive = new HiveEngineRenderer::TestDirective(&context);
 
     try {
         context.run();

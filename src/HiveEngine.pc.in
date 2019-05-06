@@ -1,8 +1,0 @@
-includedir=@CMAKE_INSTALL_FULL_INCLUDEDIR@
-libdir=@CMAKE_INSTALL_FULL_LIBDIR@
-
-Name: HiveEngine
-Description: A multi-platform library for procedural generation and simulation mechanics
-Version: @PROJECT_VERSION@
-Libs: -lHiveEngine
-Cflags: -I${includedir}

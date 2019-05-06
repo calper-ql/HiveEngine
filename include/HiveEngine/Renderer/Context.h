@@ -16,10 +16,14 @@
 #include <vector>
 #include <optional>
 #include <set>
+#include <string>
+#include <filesystem>
+#include <fstream>
+#include <map>
 
 namespace HiveEngineRenderer {
-    const int WIDTH = 800;
-    const int HEIGHT = 600;
+
+    class Directive;
 
     struct QueueFamilyIndices {
         std::optional<uint32_t> graphics_family;
@@ -39,9 +43,9 @@ namespace HiveEngineRenderer {
 
     class Context {
     public:
+
         std::vector<const char*> validation_layers = {"VK_LAYER_LUNARG_standard_validation"};
         const std::vector<const char*> deviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
-        
 
         void run(){
             init_window();
@@ -50,29 +54,75 @@ namespace HiveEngineRenderer {
             cleanup();
         }
 
+        void register_directive(Directive* directive);
+        VkFormat get_image_format();
+        VkDevice get_device();
+        std::map<std::string, VkShaderModule> get_shaders();
+        VkExtent2D get_swap_chain_extent();
+        std::vector<VkImageView> get_swap_chain_image_views();
+
+
+        VkCommandPool get_command_pool();
+
+        void mark_resized();
+
     private:
-        VkInstance instance;
         GLFWwindow* window;
+
+        VkInstance instance;
         VkDebugUtilsMessengerEXT debug_messenger;
-        VkPhysicalDevice physical_device = VK_NULL_HANDLE;
-        VkDevice device = VK_NULL_HANDLE;
-        VkQueue graphics_queue;
-        VkQueue present_queue;
         VkSurfaceKHR surface;
 
+        VkPhysicalDevice physical_device = VK_NULL_HANDLE;
+        VkDevice device;
 
+        VkQueue graphics_queue;
+        VkQueue present_queue;
+
+        SwapChainSupportDetails details;
+
+        VkSwapchainKHR swap_chain;
+        std::vector<VkImage> swap_chain_images;
+        VkFormat swap_chain_image_format;
+        VkExtent2D swap_chain_exent;
+
+        std::vector<VkImageView> swap_chain_image_views;
+
+        std::map<std::string, VkShaderModule> shaders;
+
+        std::vector<Directive*> directives;
+        VkCommandPool command_pool;
+
+        uint8_t inflight_frame_count = 2;
+        size_t currentFrame = 0;
+        std::vector<VkSemaphore> imageAvailableSemaphores;
+        std::vector<VkSemaphore> renderFinishedSemaphores;
+        std::vector<VkFence> inFlightFences;
+
+        bool frame_buffer_resized;
 
         void init_window();
         void init_vulkan();
         void main_loop();
         void cleanup();
+
         void create_instance();
         bool check_validation_layer_support();
         void setup_debug_messenger();
         void pick_physical_device();
         void create_logical_device();
         void create_surface();
+        void create_swap_chain();
+        void create_image_views();
+        void load_shaders();
+        void init_directives_frame_buffer();
+        void create_command_pool();
+        void init_directives_command_buffer();
+        void create_sync_objects();
 
+        void draw_frame();
+        void recreate_swap_chain();
+        void cleanup_swap_chain();
     };
 }
 
