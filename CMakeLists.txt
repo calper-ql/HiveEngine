@@ -29,7 +29,7 @@ add_subdirectory(glm)
 set(SOURCES src/HiveEngine.cpp include/HiveEngine/LODSquare.h src/LODSquare.cpp include/HiveEngine/DynamicSphere.h include/HiveEngine/RadialGenerator.h src/RadialGenerator.cpp include/HiveEngine/Texture.h src/DynamicSphere.cpp include/HiveEngine/Entity.h src/Entity.cpp include/HiveEngine/Utilities.h src/Utilities.cpp include/HiveEngine/Common.h src/Common.cpp include/HiveEngine/Mesh.h)
 
 if(BUILD_RENDERER)
-    set(SOURCES ${SOURCES} include/HiveEngine/Renderer/Context.h src/Renderer/Context.cpp include/HiveEngine/Renderer/Directive.h src/Renderer/Directive.cpp include/HiveEngine/Renderer/TestDirective.h src/Renderer/TestDirective.cpp include/HiveEngine/Renderer/vk_mem_alloc.h)
+    set(SOURCES ${SOURCES} include/HiveEngine/Renderer/Context.h src/Renderer/Context.cpp include/HiveEngine/Renderer/Directive.h src/Renderer/Directive.cpp include/HiveEngine/Renderer/StandardDirective.h src/Renderer/StandardDirective.cpp include/HiveEngine/Renderer/vk_mem_alloc.h include/HiveEngine/Renderer/Drawing.h src/Renderer/Drawing.cpp include/HiveEngine/Renderer/LineDrawing.h src/Renderer/LineDrawing.cpp)
     file(GLOB_RECURSE GLSL_SOURCE_FILES
             "shaders/*.frag"
             "shaders/*.vert"

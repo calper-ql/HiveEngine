@@ -21,6 +21,8 @@
 #include <fstream>
 #include <map>
 
+#include <HiveEngine/Renderer/vk_mem_alloc.h>
+
 namespace HiveEngineRenderer {
 
     class Directive;
@@ -63,6 +65,7 @@ namespace HiveEngineRenderer {
 
 
         VkCommandPool get_command_pool();
+        VmaAllocator get_allocator();
 
         void mark_resized();
 
@@ -99,7 +102,10 @@ namespace HiveEngineRenderer {
         std::vector<VkSemaphore> renderFinishedSemaphores;
         std::vector<VkFence> inFlightFences;
 
+        VmaAllocator allocator;
+
         bool frame_buffer_resized;
+        bool inited = false;
 
         void init_window();
         void init_vulkan();
@@ -114,6 +120,7 @@ namespace HiveEngineRenderer {
         void create_surface();
         void create_swap_chain();
         void create_image_views();
+        void create_allocator();
         void load_shaders();
         void init_directives_frame_buffer();
         void create_command_pool();

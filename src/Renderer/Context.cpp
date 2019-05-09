@@ -2,6 +2,7 @@
 // Created by calper on 5/1/19.
 //
 
+#define VMA_IMPLEMENTATION
 #include <HiveEngine/Renderer/Context.h>
 #include <HiveEngine/Renderer/Directive.h>
 
@@ -52,6 +53,7 @@ namespace HiveEngineRenderer {
         create_surface();
         pick_physical_device();
         create_logical_device();
+        create_allocator();
         create_swap_chain();
         create_image_views();
         load_shaders();
@@ -59,6 +61,8 @@ namespace HiveEngineRenderer {
         create_command_pool();
         init_directives_command_buffer();
         create_sync_objects();
+
+        inited = true;
     }
 
     void Context::main_loop() {
@@ -88,6 +92,8 @@ namespace HiveEngineRenderer {
         for (auto shader: shaders){
             vkDestroyShaderModule(device, shader.second, nullptr);
         }
+
+        vmaDestroyAllocator(allocator);
 
         vkDestroyDevice(device, nullptr);
 
@@ -512,7 +518,9 @@ namespace HiveEngineRenderer {
 
     void Context::register_directive(Directive *directive) {
         if(directive == nullptr) throw std::runtime_error("failed to add directive (nullptr)!");
+        if(inited) vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE, std::numeric_limits<uint64_t>::max());
         this->directives.push_back(directive);
+        if(inited) vkResetFences(device, 1, &inFlightFences[currentFrame]);
     }
 
     void Context::init_directives_frame_buffer() {
@@ -603,7 +611,10 @@ namespace HiveEngineRenderer {
 
         std::vector<VkCommandBuffer> commandBuffers;
         for(auto directive: directives){
-            commandBuffers.push_back(directive->get_command_buffer()[imageIndex]);
+            auto cmd_buff = directive->get_command_buffer(imageIndex);
+            if(cmd_buff != nullptr){
+                commandBuffers.push_back(cmd_buff);
+            }
         }
 
         VkSubmitInfo submitInfo = {};
@@ -649,7 +660,6 @@ namespace HiveEngineRenderer {
             throw std::runtime_error("failed to present swap chain image!");
         }
 
-        //vkQueueWaitIdle(present_queue);
         currentFrame = (currentFrame + 1) % inflight_frame_count;
     }
 
@@ -679,6 +689,17 @@ namespace HiveEngineRenderer {
 
     void Context::mark_resized() {
         frame_buffer_resized = true;
+    }
+
+    void Context::create_allocator() {
+        VmaAllocatorCreateInfo allocatorInfo = {};
+        allocatorInfo.physicalDevice = physical_device;
+        allocatorInfo.device = device;
+        vmaCreateAllocator(&allocatorInfo, &allocator);
+    }
+
+    VmaAllocator Context::get_allocator() {
+        return allocator;
     }
 
 

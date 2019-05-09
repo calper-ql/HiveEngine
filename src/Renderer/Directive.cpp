@@ -28,8 +28,8 @@ namespace HiveEngineRenderer {
 
     }
 
-    std::vector<VkCommandBuffer> Directive::get_command_buffer() {
-        return std::vector<VkCommandBuffer>();
+    VkCommandBuffer Directive::get_command_buffer(uint8_t idx) {
+        return nullptr;
     }
 
     void Directive::cleanup() {

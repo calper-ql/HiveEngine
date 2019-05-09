@@ -18,7 +18,7 @@ namespace HiveEngineRenderer {
         virtual void init_frame_buffers();
         virtual void init_command_buffer();
         virtual void cleanup();
-        virtual std::vector<VkCommandBuffer> get_command_buffer();
+        virtual VkCommandBuffer get_command_buffer(uint8_t idx);
         Context* get_context();
     };
 }

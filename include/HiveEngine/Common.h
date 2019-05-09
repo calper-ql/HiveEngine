@@ -8,6 +8,11 @@
 #include <glm/glm.hpp>
 
 namespace HiveEngine {
+    struct Point {
+        glm::vec3 position = {0.0, 0.0, 0.0};
+        glm::vec4 color = {0.0, 0.0, 0.0, 0.0};
+    };
+
     class Force {
     public:
         glm::dvec3 leverage;

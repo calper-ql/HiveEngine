@@ -5,14 +5,17 @@
 #include <HiveEngine/HiveEngine.h>
 #include <HiveEngine/DynamicSphere.h>
 #include <HiveEngine/Renderer/Context.h>
-#include <HiveEngine/Renderer/TestDirective.h>
+#include <HiveEngine/Renderer/StandardDirective.h>
+#include <HiveEngine/Renderer/LineDrawing.h>
 
 int main(int argc, char* argv[]){
     std::cout << "HiveEngine version: " << HiveEngine::get_major_version()
     << "." << HiveEngine::get_minor_version() << std::endl;
 
     HiveEngineRenderer::Context context;
-    auto directive = new HiveEngineRenderer::TestDirective(&context);
+    auto test_directive = new HiveEngineRenderer::StandardDirective(&context);
+    test_directive->register_drawing(new HiveEngineRenderer::LineDrawing(test_directive));
+
 
     try {
         context.run();
