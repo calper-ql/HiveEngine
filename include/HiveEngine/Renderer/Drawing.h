@@ -21,7 +21,6 @@ namespace HiveEngineRenderer {
         Drawing(Directive* directive);
 
         virtual void init(VkRenderPass render_pass);
-        virtual void update();
         virtual void draw(VkCommandBuffer cmd_buffer);
         virtual void cleanup();
 

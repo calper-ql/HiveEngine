@@ -5,61 +5,73 @@
 #include <HiveEngine/Renderer/LineDrawing.h>
 
 HiveEngineRenderer::LineDrawing::LineDrawing(HiveEngineRenderer::Directive *directive) : Drawing(directive) {
-    std::uniform_real_distribution<float> d(-1.0f, 1.0f);
-    std::uniform_real_distribution<float> c(0.0f, 1.0f);
+    bindingDescriptions[0].binding = 0;
+    bindingDescriptions[0].stride = sizeof(HiveEngine::Point);
+    bindingDescriptions[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
-    glm::vec3 last_point = {d(g), d(g), d(g)};
-    glm::vec4 last_color = {d(g), d(g), d(g), 1.0f};
-    for (int i = 0; i < 1000; ++i) {
-        glm::vec3 next_point = {d(g), d(g), d(g)};
-        glm::vec4 next_color = {d(g), d(g), d(g), 1.0f};
-
-        HiveEngine::Point p1;
-        HiveEngine::Point p2;
-
-        p1.position = last_point;
-        p1.color = last_color;
-
-        p2.position = next_point;
-        p2.color = next_color;
-
-        points.push_back(p1);
-        points.push_back(p2);
-        last_point = next_point;
-        last_color = next_color;
-    }
+    attributeDescriptions[0].binding = 0;
+    attributeDescriptions[0].location = 0;
+    attributeDescriptions[0].format = VK_FORMAT_R32G32_SFLOAT;
+    attributeDescriptions[0].offset = offsetof(HiveEngine::Point, position);
+    attributeDescriptions[1].binding = 0;
+    attributeDescriptions[1].location = 1;
+    attributeDescriptions[1].format = VK_FORMAT_R32G32B32A32_SFLOAT;
+    attributeDescriptions[1].offset = offsetof(HiveEngine::Point, color);
 }
 
 void HiveEngineRenderer::LineDrawing::init(VkRenderPass render_pass) {
     if (!is_inited()) {
         Drawing::init(render_pass);
-        VkVertexInputBindingDescription bindingDescription = {};
-        bindingDescription.binding = 0;
-        bindingDescription.stride = sizeof(HiveEngine::Point);
-        bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
-        std::array<VkVertexInputAttributeDescription, 2> attributeDescriptions = {};
-        attributeDescriptions[0].binding = 0;
-        attributeDescriptions[0].location = 0;
-        attributeDescriptions[0].format = VK_FORMAT_R32G32_SFLOAT;
-        attributeDescriptions[0].offset = offsetof(HiveEngine::Point, position);
-        attributeDescriptions[1].binding = 0;
-        attributeDescriptions[1].location = 1;
-        attributeDescriptions[1].format = VK_FORMAT_R32G32B32A32_SFLOAT;
-        attributeDescriptions[1].offset = offsetof(HiveEngine::Point, color);
+        VkDescriptorPoolSize poolSize = {};
+        poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        poolSize.descriptorCount = 1;
 
-        VkBufferCreateInfo bufferInfo = {VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
-        bufferInfo.size = sizeof(HiveEngine::Point) * points.size();
-        bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+        VkDescriptorPoolCreateInfo poolInfo = {};
+        poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+        poolInfo.poolSizeCount = 1;
+        poolInfo.pPoolSizes = &poolSize;
 
-        VmaAllocationCreateInfo allocInfo = {};
-        allocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
-        vmaCreateBuffer(get_context()->get_allocator(), &bufferInfo, &allocInfo, &pointBuffer, &allocation, nullptr);
+        poolInfo.maxSets = 1;
 
-        void *data;
-        vmaMapMemory(get_context()->get_allocator(), allocation, &data);
-        memcpy(data, points.data(), (size_t) bufferInfo.size);
-        vmaUnmapMemory(get_context()->get_allocator(), allocation);
+        if (vkCreateDescriptorPool(get_context()->get_device(), &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS) {
+            throw std::runtime_error("failed to create descriptor pool!");
+        }
+
+        VkDescriptorSetLayoutBinding uboLayoutBinding = {};
+        uboLayoutBinding.binding = 0;
+        uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        uboLayoutBinding.descriptorCount = 1;
+        uboLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+        uboLayoutBinding.pImmutableSamplers = nullptr;
+
+        VkDescriptorSetLayoutCreateInfo layoutInfo = {};
+        layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+        layoutInfo.bindingCount = 1;
+        layoutInfo.pBindings = &uboLayoutBinding;
+
+        if (vkCreateDescriptorSetLayout(get_context()->get_device(), &layoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS) {
+            throw std::runtime_error("failed to create descriptor set layout!");
+        }
+
+        //VkDescriptorBindingFlagsEXT binding_flag = VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT_EXT;
+
+        //VkDescriptorSetLayoutBindingFlagsCreateInfoEXT bindingFlags;
+        //bindingFlags.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO_EXT;
+        //bindingFlags.pNext = nullptr;
+        //bindingFlags.pBindingFlags = &binding_flag;
+        //bindingFlags.bindingCount = 1;
+
+        VkDescriptorSetAllocateInfo allocInfo = {};
+        //allocInfo.pNext = &bindingFlags;
+        allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+        allocInfo.descriptorPool = descriptorPool;
+        allocInfo.descriptorSetCount = 1;
+        allocInfo.pSetLayouts = &descriptorSetLayout;
+
+        if (vkAllocateDescriptorSets(get_context()->get_device(), &allocInfo, &descriptorSet) != VK_SUCCESS) {
+            throw std::runtime_error("failed to allocate descriptor sets!");
+        }
 
         VkPipelineShaderStageCreateInfo vertShaderStageInfo = {};
         vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -77,9 +89,9 @@ void HiveEngineRenderer::LineDrawing::init(VkRenderPass render_pass) {
 
         VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
         vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-        vertexInputInfo.vertexBindingDescriptionCount = 1;
+        vertexInputInfo.vertexBindingDescriptionCount = bindingDescriptions.size();
         vertexInputInfo.vertexAttributeDescriptionCount = attributeDescriptions.size();
-        vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
+        vertexInputInfo.pVertexBindingDescriptions = bindingDescriptions.data();
         vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
 
         VkPipelineInputAssemblyStateCreateInfo inputAssembly = {};
@@ -140,8 +152,9 @@ void HiveEngineRenderer::LineDrawing::init(VkRenderPass render_pass) {
 
         VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
         pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-        pipelineLayoutInfo.setLayoutCount = 0;
+        pipelineLayoutInfo.setLayoutCount = 1;
         pipelineLayoutInfo.pushConstantRangeCount = 0;
+        pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
 
         if (vkCreatePipelineLayout(get_context()->get_device(), &pipelineLayoutInfo, nullptr, &pipelineLayout) !=
             VK_SUCCESS) {
@@ -172,36 +185,94 @@ void HiveEngineRenderer::LineDrawing::init(VkRenderPass render_pass) {
 }
 
 void HiveEngineRenderer::LineDrawing::update() {
-    std::uniform_real_distribution<float> d(-0.001f, 0.001f);
-    float clamp = 0.9;
+    if(point_allocation == nullptr) line_buffer.mark_changed();
+    if(line_buffer.is_changed()){
+        vmaDestroyBuffer(get_context()->get_allocator(), vk_point_buffer, point_allocation);
+        vmaDestroyBuffer(get_context()->get_allocator(), vk_state_buffer, state_allocation);
+        point_allocation = nullptr;
+        vk_point_buffer = nullptr;
+        state_allocation = nullptr;
+        vk_state_buffer = nullptr;
 
-    for (auto &p : points) {
-        p.position += glm::vec3({d(g), d(g), d(g)});
-        if(p.position.x < -clamp) p.position.x = -clamp;
-        if(p.position.y < -clamp) p.position.y = -clamp;
-        if(p.position.z < -clamp) p.position.z = -clamp;
-        if(p.position.x > clamp) p.position.x = clamp;
-        if(p.position.y > clamp) p.position.y = clamp;
-        if(p.position.z > clamp) p.position.z = clamp;
+        auto points = line_buffer.get_data();
+        auto states = line_buffer.get_state();
+
+        VkBufferCreateInfo bufferInfo = {VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
+
+        VmaAllocationCreateInfo allocInfo = {};
+        allocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
+
+        bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+        bufferInfo.size = sizeof(HiveEngine::Line) * line_buffer.size();
+        vmaCreateBuffer(get_context()->get_allocator(), &bufferInfo, &allocInfo, &vk_point_buffer, &point_allocation, nullptr);
+
+        bufferInfo.usage =  VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+        bufferInfo.size = sizeof(int) * line_buffer.size();
+        vmaCreateBuffer(get_context()->get_allocator(), &bufferInfo, &allocInfo, &vk_state_buffer, &state_allocation, nullptr);
+
+        if(line_buffer.size() > 0){
+            void *data;
+
+            vmaMapMemory(get_context()->get_allocator(), point_allocation, &data);
+            memcpy(data, points.data(), (size_t) sizeof(HiveEngine::Line) * line_buffer.size());
+            vmaUnmapMemory(get_context()->get_allocator(), point_allocation);
+
+            vmaMapMemory(get_context()->get_allocator(), state_allocation, &data);
+            memcpy(data, states.data(), (size_t) sizeof(int) * line_buffer.size());
+            vmaUnmapMemory(get_context()->get_allocator(), state_allocation);
+
+            VkDescriptorBufferInfo bufferInfo = {};
+            bufferInfo.buffer = vk_state_buffer;
+            bufferInfo.offset = 0;
+            bufferInfo.range = (size_t) sizeof(int) * line_buffer.size();
+
+            VkWriteDescriptorSet descriptorWrite = {};
+            descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            descriptorWrite.dstSet = descriptorSet;
+            descriptorWrite.dstBinding = 0;
+            descriptorWrite.dstArrayElement = 0;
+            descriptorWrite.descriptorCount = 1;
+            descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+            descriptorWrite.pBufferInfo = &bufferInfo;
+            descriptorWrite.pImageInfo = nullptr;
+            descriptorWrite.pTexelBufferView = nullptr;
+
+            vkUpdateDescriptorSets(get_context()->get_device(), 1, &descriptorWrite, 0, nullptr);
+        }
+
+        line_buffer.mark_unchanged();
     }
 
-    void *data;
-    vmaMapMemory(get_context()->get_allocator(), allocation, &data);
-    memcpy(data, points.data(), (size_t) sizeof(HiveEngine::Point) * points.size());
-    vmaUnmapMemory(get_context()->get_allocator(), allocation);
 }
 
 void HiveEngineRenderer::LineDrawing::draw(VkCommandBuffer cmd_buffer) {
-    VkBuffer buffer[] = {pointBuffer};
-    VkDeviceSize offsets[] = {0};
-    vkCmdBindVertexBuffers(cmd_buffer, 0, 1, buffer, offsets);
+    if(line_buffer.size() > 0){
+        this->update();
 
-    vkCmdBindPipeline(cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
-    vkCmdDraw(cmd_buffer, points.size(), 1, 0, 0);
+        vkCmdBindPipeline(cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
+
+        VkDeviceSize offsets[] = {0};
+        vkCmdBindVertexBuffers(cmd_buffer, 0, 1, &vk_point_buffer, offsets);
+
+        vkCmdBindDescriptorSets(cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
+
+        vkCmdDraw(cmd_buffer, line_buffer.size()*2, 1, 0, 0);
+    }
 }
 
 void HiveEngineRenderer::LineDrawing::cleanup() {
     if (is_inited()) {
+        vmaDestroyBuffer(get_context()->get_allocator(), vk_point_buffer, point_allocation);
+        vmaDestroyBuffer(get_context()->get_allocator(), vk_state_buffer, state_allocation);
+        point_allocation = nullptr;
+        vk_point_buffer = nullptr;
+        state_allocation = nullptr;
+        vk_state_buffer = nullptr;
+
+        vkDestroyDescriptorSetLayout(get_context()->get_device(), descriptorSetLayout, nullptr);
+        vkDestroyDescriptorPool(get_context()->get_device(), descriptorPool, nullptr);
+
+        line_buffer.mark_changed();
         vkDestroyPipeline(get_context()->get_device(), graphicsPipeline, nullptr);
         vkDestroyPipelineLayout(get_context()->get_device(), pipelineLayout, nullptr);
         Drawing::cleanup();

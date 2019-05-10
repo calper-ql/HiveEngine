@@ -702,6 +702,10 @@ namespace HiveEngineRenderer {
         return allocator;
     }
 
+    size_t Context::get_swap_chain_size() {
+        return swap_chain_image_views.size();
+    }
+
 
 }
 

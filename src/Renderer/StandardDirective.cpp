@@ -111,7 +111,6 @@ namespace HiveEngineRenderer {
         for (auto drawing: drawings) {
             drawing->init(renderPass);
             if (drawing->is_enabled()) {
-                drawing->update();
                 drawing->draw(commandBuffers[idx]);
             }
         }

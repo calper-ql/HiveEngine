@@ -63,6 +63,8 @@ namespace HiveEngineRenderer {
         VkExtent2D get_swap_chain_extent();
         std::vector<VkImageView> get_swap_chain_image_views();
 
+        size_t get_swap_chain_size();
+
 
         VkCommandPool get_command_pool();
         VmaAllocator get_allocator();

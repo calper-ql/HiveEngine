@@ -13,6 +13,11 @@ namespace HiveEngine {
         glm::vec4 color = {0.0, 0.0, 0.0, 0.0};
     };
 
+    struct Line {
+        Point a;
+        Point b;
+    };
+
     class Force {
     public:
         glm::dvec3 leverage;
@@ -51,6 +56,7 @@ namespace HiveEngine {
 
         bool collides(AABB other);
     };
+
 }
 
 

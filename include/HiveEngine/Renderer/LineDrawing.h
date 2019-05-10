@@ -6,18 +6,28 @@
 #define HIVEENGINE_LINEDRAWING_H
 
 #include <HiveEngine/Renderer/Drawing.h>
-#include <random>
+#include <HiveEngine/Buffer.hpp>
 
 namespace HiveEngineRenderer {
     class LineDrawing : public Drawing {
     public:
-        std::default_random_engine g; // TODO: remove this lol
+        HiveEngine::Buffer<HiveEngine::Line> line_buffer;
 
-        std::vector<HiveEngine::Point> points;
-        VmaAllocation allocation;
-        VkBuffer pointBuffer;
+        VmaAllocation point_allocation = nullptr;
+        VkBuffer vk_point_buffer = nullptr;
+
+        VmaAllocation state_allocation = nullptr;
+        VkBuffer vk_state_buffer = nullptr;
+
         VkPipeline graphicsPipeline;
         VkPipelineLayout pipelineLayout;
+
+        std::array<VkVertexInputBindingDescription, 1> bindingDescriptions = {};
+        std::array<VkVertexInputAttributeDescription, 2> attributeDescriptions = {};
+
+        VkDescriptorPool descriptorPool;
+        VkDescriptorSetLayout descriptorSetLayout;
+        VkDescriptorSet descriptorSet;
 
         float line_width = 1;
 
@@ -25,7 +35,7 @@ namespace HiveEngineRenderer {
 
         void init(VkRenderPass render_pass) override;
 
-        void update() override;
+        void update();
 
         void draw(VkCommandBuffer cmd_buffer) override;
 

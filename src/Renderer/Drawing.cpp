@@ -49,8 +49,4 @@ namespace HiveEngineRenderer {
 
     }
 
-    void Drawing::update() {
-
-    }
-
 }
