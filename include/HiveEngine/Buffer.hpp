@@ -47,7 +47,7 @@ namespace HiveEngine {
         }
 
         size_t add(T item){
-            if(available.size() == 0) expand(100);
+            if(available.size() == 0) expand(10);
             size_t index = available.front();
             available.pop_front();
             data[index] = item;

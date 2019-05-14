@@ -49,13 +49,6 @@ namespace HiveEngineRenderer {
         std::vector<const char*> validation_layers = {"VK_LAYER_LUNARG_standard_validation"};
         const std::vector<const char*> deviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
 
-        void run(){
-            init_window();
-            init_vulkan();
-            main_loop();
-            cleanup();
-        }
-
         void register_directive(Directive* directive);
         VkFormat get_image_format();
         VkDevice get_device();
@@ -65,11 +58,19 @@ namespace HiveEngineRenderer {
 
         size_t get_swap_chain_size();
 
-
         VkCommandPool get_command_pool();
         VmaAllocator get_allocator();
 
         void mark_resized();
+
+        GLFWwindow* get_window();
+
+        void wait_device();
+
+        void init_window();
+        void init_vulkan();
+        void main_loop();
+        void cleanup();
 
     private:
         GLFWwindow* window;
@@ -108,11 +109,6 @@ namespace HiveEngineRenderer {
 
         bool frame_buffer_resized;
         bool inited = false;
-
-        void init_window();
-        void init_vulkan();
-        void main_loop();
-        void cleanup();
 
         void create_instance();
         bool check_validation_layer_support();

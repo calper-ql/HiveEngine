@@ -66,12 +66,12 @@ namespace HiveEngineRenderer {
     }
 
     void Context::main_loop() {
-        while (!glfwWindowShouldClose(window)) {
-            glfwPollEvents();
-            draw_frame();
-        }
+        //while (!glfwWindowShouldClose(window)) {
 
-        vkDeviceWaitIdle(device);
+        draw_frame();
+        //}
+
+        //vkDeviceWaitIdle(device);
     }
 
     void Context::cleanup() {
@@ -168,6 +168,7 @@ namespace HiveEngineRenderer {
             bool layerFound = false;
 
             for (const auto& layerProperties : availableLayers) {
+                std::cout << layerProperties.layerName << std::endl;
                 if (strcmp(layerName, layerProperties.layerName) == 0) {
                     layerFound = true;
                     break;
@@ -704,6 +705,14 @@ namespace HiveEngineRenderer {
 
     size_t Context::get_swap_chain_size() {
         return swap_chain_image_views.size();
+    }
+
+    GLFWwindow *Context::get_window() {
+        return window;
+    }
+
+    void Context::wait_device() {
+        vkDeviceWaitIdle(device);
     }
 
 

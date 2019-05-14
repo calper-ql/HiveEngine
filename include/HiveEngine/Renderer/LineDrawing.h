@@ -7,6 +7,7 @@
 
 #include <HiveEngine/Renderer/Drawing.h>
 #include <HiveEngine/Buffer.hpp>
+#include <HiveEngine/Renderer/Camera.h>
 
 namespace HiveEngineRenderer {
     class LineDrawing : public Drawing {
@@ -18,6 +19,9 @@ namespace HiveEngineRenderer {
 
         VmaAllocation state_allocation = nullptr;
         VkBuffer vk_state_buffer = nullptr;
+
+        VmaAllocation camera_allocation = nullptr;
+        VkBuffer vk_camera_buffer = nullptr;
 
         VkPipeline graphicsPipeline;
         VkPipelineLayout pipelineLayout;
@@ -31,7 +35,9 @@ namespace HiveEngineRenderer {
 
         float line_width = 1;
 
-        LineDrawing(Directive *directive);
+        Camera* camera;
+
+        LineDrawing(Directive *directive, Camera* camera);
 
         void init(VkRenderPass render_pass) override;
 

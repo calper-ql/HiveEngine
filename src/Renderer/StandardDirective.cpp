@@ -84,6 +84,10 @@ namespace HiveEngineRenderer {
         if (vkAllocateCommandBuffers(get_context()->get_device(), &allocInfo, commandBuffers.data()) != VK_SUCCESS) {
             throw std::runtime_error("failed to allocate command buffers!");
         }
+
+        for (auto drawing: drawings) {
+            drawing->init(renderPass);
+        }
     }
 
     VkCommandBuffer StandardDirective::get_command_buffer(uint8_t idx) {
@@ -109,7 +113,6 @@ namespace HiveEngineRenderer {
         vkCmdBeginRenderPass(commandBuffers[idx], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
         for (auto drawing: drawings) {
-            drawing->init(renderPass);
             if (drawing->is_enabled()) {
                 drawing->draw(commandBuffers[idx]);
             }
