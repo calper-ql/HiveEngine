@@ -28,15 +28,16 @@ HiveEngineRenderer::LineDrawing::LineDrawing(HiveEngineRenderer::Directive *dire
 void HiveEngineRenderer::LineDrawing::init(VkRenderPass render_pass) {
         Drawing::init(render_pass);
 
-        VkDescriptorPoolSize poolSize = {};
-        poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        poolSize.descriptorCount = 1;
+        std::array<VkDescriptorPoolSize, 2> poolSize = {};
+        poolSize[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        poolSize[0].descriptorCount = 1;
+        poolSize[1].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        poolSize[1].descriptorCount = 1;
 
         VkDescriptorPoolCreateInfo poolInfo = {};
         poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-        poolInfo.poolSizeCount = 1;
-        poolInfo.pPoolSizes = &poolSize;
-
+        poolInfo.poolSizeCount = poolSize.size();
+        poolInfo.pPoolSizes = poolSize.data();
         poolInfo.maxSets = 1;
 
         if (vkCreateDescriptorPool(get_context()->get_device(), &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS) {
@@ -194,7 +195,7 @@ void HiveEngineRenderer::LineDrawing::update() {
         auto package = camera->get_package();
 
         VkBufferCreateInfo bufferInfo = {VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
-        bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+        bufferInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
         bufferInfo.size = sizeof(package);
 
         VmaAllocationCreateInfo allocInfo = {};

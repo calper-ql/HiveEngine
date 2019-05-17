@@ -5,6 +5,10 @@ option(BUILD_RENDERER "Build the renderer for HiveEngine" OFF)
 
 if(BUILD_RENDERER)
     set(Vulkan_INCLUDE_DIR /home/calper//SDK/Vulkan-1.1.106.0/x86_64)
+    IF (WIN32)
+        set(Vulkan_INCLUDE_DIR C:/VulkanSDK/1.1.106.0/)
+    ENDIF()
+
     find_package(Vulkan REQUIRED)
     message(STATUS "==== VULKAN_FOUND: " ${Vulkan_FOUND})
     message(STATUS "Vulkan_INCLUDE_DIRS: " ${Vulkan_INCLUDE_DIRS})
@@ -60,7 +64,15 @@ add_library(HiveEngine STATIC ${SOURCES})
 target_compile_features(HiveEngine PUBLIC cxx_std_17)
 
 target_link_libraries(HiveEngine PUBLIC glm)
-target_link_libraries(HiveEngine PUBLIC stdc++fs)
+IF(WIN32)
+
+ELSE()
+    target_link_libraries(HiveEngine PUBLIC stdc++fs)
+ENDIF()
+
+add_custom_target(copy-data-files ALL
+        COMMAND cmake -E copy_directory ${CMAKE_SOURCE_DIR}/data ${CMAKE_BINARY_DIR}/data
+        DEPENDS ${HiveEngine})
 
 if(BUILD_RENDERER)
     target_link_libraries(HiveEngine PUBLIC glfw)

@@ -56,7 +56,9 @@ namespace HiveEngineRenderer {
         VkDescriptorSetLayout descriptorSetLayout;
         VkDescriptorSet descriptorSet;
 
-        ImageDrawing(Directive *directive);
+        HiveEngine::Texture texture;
+
+        ImageDrawing(Directive *directive, HiveEngine::Texture texture);
 
         void init(VkRenderPass render_pass) override;
 

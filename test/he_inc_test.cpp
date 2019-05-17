@@ -18,10 +18,12 @@ int main(int argc, char* argv[]){
     HiveEngineRenderer::Camera camera;
     camera.set_position({0.0, 0.0, -3.30});
 
+    auto statue_texture = HiveEngine::load_texture("../statue.jpg");
+
     HiveEngineRenderer::Context context;
     auto test_directive = new HiveEngineRenderer::StandardDirective(&context);
     auto line_drawing = new HiveEngineRenderer::LineDrawing(test_directive, &camera);
-    auto image_drawing = new HiveEngineRenderer::ImageDrawing(test_directive);
+    auto image_drawing = new HiveEngineRenderer::ImageDrawing(test_directive, statue_texture);
 
     test_directive->register_drawing(line_drawing);
     test_directive->register_drawing(image_drawing);

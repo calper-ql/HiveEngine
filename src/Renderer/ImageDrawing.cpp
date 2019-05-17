@@ -1,3 +1,5 @@
+#include <utility>
+
 //
 // Created by calper on 5/11/19.
 //
@@ -35,8 +37,8 @@ namespace HiveEngineRenderer {
         return io;
     }
 
-    ImageDrawing::ImageDrawing(Directive *directive) : Drawing(directive) {
-
+    ImageDrawing::ImageDrawing(Directive *directive, HiveEngine::Texture texture) : Drawing(directive) {
+        this->texture = texture;
     }
 
     void ImageDrawing::init(VkRenderPass render_pass) {

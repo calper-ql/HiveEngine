@@ -7,6 +7,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <HiveEngine/stb/stb_image.h>
 #include <stdexcept>
+#include <iostream>
 
 namespace HiveEngine {
     Texture load_texture(std::string path) {
