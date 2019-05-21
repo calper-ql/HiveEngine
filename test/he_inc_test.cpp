@@ -18,7 +18,11 @@ int main(int argc, char* argv[]){
     HiveEngineRenderer::Camera camera;
     camera.set_position({0.0, 0.0, -3.30});
 
-    auto statue_texture = HiveEngine::load_texture("../statue.jpg");
+    auto statue_texture = HiveEngine::load_texture("../data/statue.jpg");
+    std::cout << "Statue texture:" << std::endl;
+    std::cout << "width:   " << statue_texture.width << std::endl;
+    std::cout << "height:  " << statue_texture.height << std::endl;
+    std::cout << "channel: " << statue_texture.channel << std::endl;
 
     HiveEngineRenderer::Context context;
     auto test_directive = new HiveEngineRenderer::StandardDirective(&context);
@@ -85,6 +89,22 @@ int main(int argc, char* argv[]){
             camera.get_user_movement(context.get_window());
             glfwPollEvents();
             context.main_loop();
+
+            for (int i = 0; i < 2; ++i) {
+                auto size = line_drawing->line_buffer.size();
+                line_drawing->line_buffer.remove(rand()%size);
+            }
+
+            for (int i = 0; i < 1; ++i) {
+                HiveEngine::Line line;
+                glm::vec4 next_color = {c(g), c(g), c(g), 1.0f};
+                line.a.position = glm::vec3(d(g), d(g), d(g));
+                line.b.position = glm::vec3(d(g), d(g), d(g));
+                line.a.color = next_color;
+                line.b.color = next_color;
+                line_drawing->line_buffer.add(line);
+            }
+
         }
 
         context.wait_device();

@@ -22,6 +22,7 @@
 #include <map>
 
 #include <HiveEngine/Renderer/vk_mem_alloc.h>
+#include <HiveEngine/Texture.h>
 
 namespace HiveEngineRenderer {
 
@@ -46,6 +47,7 @@ namespace HiveEngineRenderer {
     class Context {
     public:
 
+        // VK_LAYER_LUNARG_standard_validation
         std::vector<const char*> validation_layers = {"VK_LAYER_LUNARG_standard_validation"};
         const std::vector<const char*> deviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
 
@@ -71,6 +73,11 @@ namespace HiveEngineRenderer {
         void init_vulkan();
         void main_loop();
         void cleanup();
+
+        void copy_texture_to_image(HiveEngine::Texture texture, VkImage image);
+
+        VkCommandBuffer begin_instant_command();
+        void end_instant_command(VkCommandBuffer cmd);
 
     private:
         GLFWwindow* window;

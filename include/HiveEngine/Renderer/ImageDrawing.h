@@ -57,8 +57,14 @@ namespace HiveEngineRenderer {
         VkDescriptorSet descriptorSet;
 
         HiveEngine::Texture texture;
+        VkImage textureImage = nullptr;
+        VmaAllocation textureAllocation = nullptr;
+
+        bool image_pushed = false;
 
         ImageDrawing(Directive *directive, HiveEngine::Texture texture);
+
+        ~ImageDrawing();
 
         void init(VkRenderPass render_pass) override;
 

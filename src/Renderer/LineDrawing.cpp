@@ -292,6 +292,7 @@ void HiveEngineRenderer::LineDrawing::update() {
 
 void HiveEngineRenderer::LineDrawing::draw(VkCommandBuffer cmd_buffer) {
     if(line_buffer.size() > 0){
+        get_context()->wait_device();
         this->update();
 
         vkCmdBindPipeline(cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);

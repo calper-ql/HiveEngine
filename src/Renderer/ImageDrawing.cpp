@@ -39,10 +39,34 @@ namespace HiveEngineRenderer {
 
     ImageDrawing::ImageDrawing(Directive *directive, HiveEngine::Texture texture) : Drawing(directive) {
         this->texture = texture;
+
+
     }
 
     void ImageDrawing::init(VkRenderPass render_pass) {
         Drawing::init(render_pass);
+
+        VkImageCreateInfo imageInfo = {};
+        imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+        imageInfo.imageType = VK_IMAGE_TYPE_2D;
+        imageInfo.extent.width = texture.width;
+        imageInfo.extent.height = texture.height;
+        imageInfo.extent.depth = 1;
+        imageInfo.mipLevels = 1;
+        imageInfo.arrayLayers = 1;
+        imageInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
+        imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+        imageInfo.initialLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+        imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+        imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+        imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+        VmaAllocationCreateInfo textureCreateInfo = {};
+        textureCreateInfo.usage = VMA_MEMORY_USAGE_UNKNOWN;
+
+        auto res = vmaCreateImage(get_context()->get_allocator(), &imageInfo, &textureCreateInfo,
+                &textureImage, &textureAllocation, nullptr);
+
 
         std::array<VkVertexInputBindingDescription, 1> bindingDescriptions = {};
         std::array<VkVertexInputAttributeDescription, 2> attributeDescriptions = {};
@@ -289,6 +313,11 @@ namespace HiveEngineRenderer {
         if(imos.size() > 0){
             this->update();
 
+            if(!image_pushed){
+                image_pushed = true;
+                get_context()->copy_texture_to_image(texture, textureImage);
+            }
+
             vkCmdBindPipeline(cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
 
             VkDeviceSize offsets[] = {0};
@@ -302,6 +331,8 @@ namespace HiveEngineRenderer {
 
     void ImageDrawing::cleanup() {
         Drawing::cleanup();
+
+        vmaDestroyImage(get_context()->get_allocator(), textureImage, textureAllocation);
 
         vmaDestroyBuffer(get_context()->get_allocator(), orientation_buffer, orientation_allocation);
         orientation_buffer = nullptr;
@@ -339,5 +370,9 @@ namespace HiveEngineRenderer {
         imtds.set(id.itdesc2, itd);
         imtds.remove(id.itdesc1);
         imtds.remove(id.itdesc2);
+    }
+
+    ImageDrawing::~ImageDrawing() {
+
     }
 }

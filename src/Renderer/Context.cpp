@@ -715,6 +715,84 @@ namespace HiveEngineRenderer {
         vkDeviceWaitIdle(device);
     }
 
+    void Context::copy_texture_to_image(HiveEngine::Texture texture, VkImage image) {
+        VkBuffer tempBuffer = nullptr;
+        VmaAllocation tempAllocation = nullptr;
+
+        VkBufferCreateInfo bufferInfo = {VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
+        bufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+        bufferInfo.size = texture.data.size();
+
+        VmaAllocationCreateInfo allocInfo = {};
+        allocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
+
+        vmaCreateBuffer(get_allocator(), &bufferInfo, &allocInfo, &tempBuffer, &tempAllocation, nullptr);
+
+        void *data;
+        vmaMapMemory(get_allocator(), tempAllocation, &data);
+        memcpy(data, texture.data.data(), bufferInfo.size);
+        vmaUnmapMemory(get_allocator(), tempAllocation);
+
+        VkBufferImageCopy region = {};
+        region.bufferOffset = 0;
+        region.bufferRowLength = 0;
+        region.bufferImageHeight = 0;
+
+        region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        region.imageSubresource.mipLevel = 0;
+        region.imageSubresource.baseArrayLayer = 0;
+        region.imageSubresource.layerCount = 1;
+
+        region.imageOffset = {0, 0, 0};
+        region.imageExtent = {
+                static_cast<uint32_t>(texture.width),
+                static_cast<uint32_t>(texture.height),
+                1
+        };
+
+        VkCommandBuffer cmd = begin_instant_command();
+
+        vkCmdCopyBufferToImage(cmd, tempBuffer, image,
+                               VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+
+        end_instant_command(cmd);
+
+        vmaDestroyBuffer(get_allocator(), tempBuffer, tempAllocation);
+    }
+
+    VkCommandBuffer Context::begin_instant_command() {
+        VkCommandBufferAllocateInfo allocInfo = {};
+        allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        allocInfo.commandPool = command_pool;
+        allocInfo.commandBufferCount = 1;
+
+        VkCommandBuffer commandBuffer;
+        vkAllocateCommandBuffers(device, &allocInfo, &commandBuffer);
+
+        VkCommandBufferBeginInfo beginInfo = {};
+        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+        vkBeginCommandBuffer(commandBuffer, &beginInfo);
+
+        return commandBuffer;
+    }
+
+    void Context::end_instant_command(VkCommandBuffer cmd) {
+        vkEndCommandBuffer(cmd);
+
+        VkSubmitInfo submitInfo = {};
+        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        submitInfo.commandBufferCount = 1;
+        submitInfo.pCommandBuffers = &cmd;
+
+        vkQueueSubmit(graphics_queue, 1, &submitInfo, VK_NULL_HANDLE);
+        vkQueueWaitIdle(graphics_queue);
+
+        vkFreeCommandBuffers(device, command_pool, 1, &cmd);
+    }
+
 
 }
 
