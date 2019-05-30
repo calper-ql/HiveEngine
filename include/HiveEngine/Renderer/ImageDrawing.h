@@ -60,6 +60,9 @@ namespace HiveEngineRenderer {
         VkImage textureImage = nullptr;
         VmaAllocation textureAllocation = nullptr;
 
+        VkImageView imageView;
+        VkSampler textureSampler;
+
         bool image_pushed = false;
 
         ImageDrawing(Directive *directive, HiveEngine::Texture texture);

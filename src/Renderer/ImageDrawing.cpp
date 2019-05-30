@@ -11,10 +11,10 @@ namespace HiveEngineRenderer {
     ImageOrientation create_aligned_image_orientation(glm::vec3 position, float width, float height) {
         ImageOrientation io = {};
 
-        float left = position.x - width/2.0f;
-        float right = position.x + width/2.0f;
-        float up = position.y + height/2.0f;
-        float down = position.y - height/2.0f;
+        float left = position.x - width / 2.0f;
+        float right = position.x + width / 2.0f;
+        float up = position.y + height / 2.0f;
+        float down = position.y - height / 2.0f;
 
         io.f0 = {left, up, position.z};
         io.f0uv = {0.0f, 0.0f};
@@ -65,7 +65,7 @@ namespace HiveEngineRenderer {
         textureCreateInfo.usage = VMA_MEMORY_USAGE_UNKNOWN;
 
         auto res = vmaCreateImage(get_context()->get_allocator(), &imageInfo, &textureCreateInfo,
-                &textureImage, &textureAllocation, nullptr);
+                                  &textureImage, &textureAllocation, nullptr);
 
 
         std::array<VkVertexInputBindingDescription, 1> bindingDescriptions = {};
@@ -100,9 +100,9 @@ namespace HiveEngineRenderer {
             throw std::runtime_error("failed to create descriptor pool!");
         }
 
-        std::array<VkDescriptorSetLayoutBinding, 1> bindings = {};
+        std::array<VkDescriptorSetLayoutBinding, 2> bindings = {};
 
-        bindings[0].binding = 0;
+        bindings[0].binding = 1;
         bindings[0].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
         bindings[0].descriptorCount = 1;
         bindings[0].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
@@ -113,7 +113,8 @@ namespace HiveEngineRenderer {
         layoutInfo.bindingCount = bindings.size();
         layoutInfo.pBindings = bindings.data();
 
-        if (vkCreateDescriptorSetLayout(get_context()->get_device(), &layoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS) {
+        if (vkCreateDescriptorSetLayout(get_context()->get_device(), &layoutInfo, nullptr, &descriptorSetLayout) !=
+            VK_SUCCESS) {
             throw std::runtime_error("failed to create descriptor set layout!");
         }
 
@@ -251,9 +252,10 @@ namespace HiveEngineRenderer {
 
             VmaAllocationCreateInfo allocInfo = {};
             allocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
-            vmaCreateBuffer(get_context()->get_allocator(), &bufferInfo, &allocInfo, &orientation_buffer, &orientation_allocation, nullptr);
+            vmaCreateBuffer(get_context()->get_allocator(), &bufferInfo, &allocInfo, &orientation_buffer,
+                            &orientation_allocation, nullptr);
 
-            if(!orientations.empty()){
+            if (!orientations.empty()) {
                 void *data;
                 vmaMapMemory(get_context()->get_allocator(), orientation_allocation, &data);
                 memcpy(data, orientations.data(), sizeof(ImageOrientation) * orientations.size());
@@ -275,9 +277,10 @@ namespace HiveEngineRenderer {
 
             VmaAllocationCreateInfo allocInfo = {};
             allocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
-            vmaCreateBuffer(get_context()->get_allocator(), &bufferInfo, &allocInfo, &description_buffer, &description_allocation, nullptr);
+            vmaCreateBuffer(get_context()->get_allocator(), &bufferInfo, &allocInfo, &description_buffer,
+                            &description_allocation, nullptr);
 
-            if(!decriptors.empty()){
+            if (!decriptors.empty()) {
                 void *data;
                 vmaMapMemory(get_context()->get_allocator(), description_allocation, &data);
                 memcpy(data, decriptors.data(), sizeof(ImageTriangleDescription) * decriptors.size());
@@ -292,7 +295,7 @@ namespace HiveEngineRenderer {
             VkWriteDescriptorSet stateStorageWrite = {};
             stateStorageWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
             stateStorageWrite.dstSet = descriptorSet;
-            stateStorageWrite.dstBinding = 0;
+            stateStorageWrite.dstBinding = 1;
             stateStorageWrite.dstArrayElement = 0;
             stateStorageWrite.descriptorCount = 1;
             stateStorageWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
@@ -302,7 +305,8 @@ namespace HiveEngineRenderer {
 
             std::array<VkWriteDescriptorSet, 1> write_descriptors = {stateStorageWrite};
 
-            vkUpdateDescriptorSets(get_context()->get_device(), write_descriptors.size(), write_descriptors.data(), 0, nullptr);
+            vkUpdateDescriptorSets(get_context()->get_device(), write_descriptors.size(), write_descriptors.data(), 0,
+                                   nullptr);
         }
         imtds.mark_unchanged();
 
@@ -310,12 +314,46 @@ namespace HiveEngineRenderer {
 
     void ImageDrawing::draw(VkCommandBuffer cmd_buffer) {
         Drawing::draw(cmd_buffer);
-        if(imos.size() > 0){
+        if (imos.size() > 0) {
             this->update();
 
-            if(!image_pushed){
+            if (!image_pushed) {
                 image_pushed = true;
                 get_context()->copy_texture_to_image(texture, textureImage);
+
+                VkImageViewCreateInfo viewInfo = {};
+                viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+                viewInfo.image = textureImage;
+                viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+                viewInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
+                viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+                viewInfo.subresourceRange.baseMipLevel = 0;
+                viewInfo.subresourceRange.levelCount = 1;
+                viewInfo.subresourceRange.baseArrayLayer = 0;
+                viewInfo.subresourceRange.layerCount = 1;
+
+                if (vkCreateImageView(get_context()->get_device(), &viewInfo, nullptr, &imageView) != VK_SUCCESS) {
+                    throw std::runtime_error("failed to create texture image view!");
+                }
+
+                VkSamplerCreateInfo samplerInfo = {};
+                samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+                samplerInfo.magFilter = VK_FILTER_LINEAR;
+                samplerInfo.minFilter = VK_FILTER_LINEAR;
+                samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+                samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+                samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+                samplerInfo.anisotropyEnable = VK_FALSE;
+                samplerInfo.maxAnisotropy = 1;
+                samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+                samplerInfo.unnormalizedCoordinates = VK_FALSE;
+                samplerInfo.compareEnable = VK_FALSE;
+                samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+                samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+
+                if (vkCreateSampler(get_context()->get_device(), &samplerInfo, nullptr, &textureSampler) != VK_SUCCESS) {
+                    throw std::runtime_error("failed to create texture sampler!");
+                }
             }
 
             vkCmdBindPipeline(cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
@@ -323,7 +361,8 @@ namespace HiveEngineRenderer {
             VkDeviceSize offsets[] = {0};
             vkCmdBindVertexBuffers(cmd_buffer, 0, 1, &orientation_buffer, offsets);
 
-            vkCmdBindDescriptorSets(cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
+            vkCmdBindDescriptorSets(cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet,
+                                    0, nullptr);
 
             vkCmdDraw(cmd_buffer, imos.size() * 6, 1, 0, 0);
         }
@@ -331,6 +370,11 @@ namespace HiveEngineRenderer {
 
     void ImageDrawing::cleanup() {
         Drawing::cleanup();
+
+        if(image_pushed){
+            vkDestroyImageView(get_context()->get_device(), imageView, nullptr);
+            vkDestroySampler(get_context()->get_device(), textureSampler, nullptr);
+        }
 
         vmaDestroyImage(get_context()->get_allocator(), textureImage, textureAllocation);
 

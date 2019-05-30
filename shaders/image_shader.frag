@@ -6,7 +6,7 @@ struct ImageDescription {
     int texture_index;
 };
 
-layout(set = 0, binding = 0) buffer ImageDescriptionBuffer {
+layout(set = 0, binding = 1) buffer ImageDescriptionBuffer {
     ImageDescription data[];
 } storage;
 
