@@ -79,6 +79,12 @@ namespace HiveEngineRenderer {
 
         ImageDescription add_image(glm::vec3 position, float width, float height);
 
+        void edit_image_position(ImageDescription id, float width);
+
+        void edit_image_width(ImageDescription id, float width);
+
+        void edit_image_height(ImageDescription id, float width);
+
         void remove_image(ImageDescription id);
     };
 }
