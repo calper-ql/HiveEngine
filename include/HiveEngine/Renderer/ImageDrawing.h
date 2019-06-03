@@ -26,7 +26,7 @@ namespace HiveEngineRenderer {
     };
 
     struct ImageTriangleDescription {
-        int texture_index = -2;
+        int texture_index = -1;
     };
 
     struct ImageDescription {
@@ -77,7 +77,7 @@ namespace HiveEngineRenderer {
 
         void cleanup() override;
 
-        ImageDescription add_image(int texture_index, glm::vec3 position, float width, float height);
+        ImageDescription add_image(glm::vec3 position, float width, float height);
 
         void remove_image(ImageDescription id);
     };

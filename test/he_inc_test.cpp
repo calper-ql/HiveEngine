@@ -70,13 +70,13 @@ int main(int argc, char* argv[]){
         line_drawing->line_buffer.remove(i);
     }
 
-    image_drawing->add_image(-1, {-0.5, 0.0, 0.0}, 0.4, 0.4);
-    image_drawing->add_image(0, {0.5, 0.5, 0.0}, 0.4, 0.4);
+    image_drawing->add_image({-0.6, 0.0, 0.0}, 0.4, 0.4);
+    image_drawing->add_image({-0.5, 0.0, 0.0}, 0.4, 0.4);
+    image_drawing->add_image({0.5, 0.5, 0.0}, 0.4, 0.4);
 
     for(int i = 0; i < 15; ++i){
-        image_drawing->add_image(i%2==0?-1:-2, {0.0+i/(float)20, 0.0, 0.0}, 0.2, 0.2);
+        image_drawing->add_image({0.0+i/(float)20, 0.0, 0.0}, 0.2, 0.2);
     }
-
 
 
     try {

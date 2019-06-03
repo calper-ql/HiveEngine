@@ -17,22 +17,22 @@ namespace HiveEngineRenderer {
         float down = position.y - height / 2.0f;
 
         io.f0 = {left, up, position.z};
-        io.f0uv = {0.0f, 0.0f};
+        io.f0uv = {0.0f, 1.0f};
 
         io.f1 = {right, up, position.z};
-        io.f1uv = {1.0f, 0.0f};
+        io.f1uv = {1.0f, 1.0f};
 
         io.f2 = {right, down, position.z};
-        io.f2uv = {1.0f, 1.0f};
+        io.f2uv = {1.0f, 0.0f};
 
         io.f3 = {right, down, position.z};
-        io.f3uv = {1.0f, 1.0f};
+        io.f3uv = {1.0f, 0.0f};
 
         io.f4 = {left, down, position.z};
-        io.f4uv = {0.0f, 1.0f};
+        io.f4uv = {0.0f, 0.0f};
 
         io.f5 = {left, up, position.z};
-        io.f5uv = {0.0f, 0.0f};
+        io.f5uv = {0.0f, 1.0f};
 
         return io;
     }
@@ -56,7 +56,7 @@ namespace HiveEngineRenderer {
         imageInfo.arrayLayers = 1;
         imageInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
         imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-        imageInfo.initialLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+        imageInfo.initialLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
         imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
         imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
         imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
@@ -85,14 +85,16 @@ namespace HiveEngineRenderer {
         attributeDescriptions[1].format = VK_FORMAT_R32G32_SFLOAT;
         attributeDescriptions[1].offset = offsetof(ImageOrientation, f0uv);
 
-        VkDescriptorPoolSize poolSize = {};
-        poolSize.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-        poolSize.descriptorCount = 1;
+        std::array<VkDescriptorPoolSize, 2> poolSizes = {};
+        poolSizes[0].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        poolSizes[0].descriptorCount = 1;
+        poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        poolSizes[1].descriptorCount = 1;
 
         VkDescriptorPoolCreateInfo poolInfo = {};
         poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-        poolInfo.poolSizeCount = 1;
-        poolInfo.pPoolSizes = &poolSize;
+        poolInfo.poolSizeCount = poolSizes.size();
+        poolInfo.pPoolSizes = poolSizes.data();
 
         poolInfo.maxSets = 1;
 
@@ -107,6 +109,12 @@ namespace HiveEngineRenderer {
         bindings[0].descriptorCount = 1;
         bindings[0].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
         bindings[0].pImmutableSamplers = nullptr;
+
+        bindings[1].binding = 2;
+        bindings[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        bindings[1].descriptorCount = 1;
+        bindings[1].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+        bindings[1].pImmutableSamplers = nullptr;
 
         VkDescriptorSetLayoutCreateInfo layoutInfo = {};
         layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -303,7 +311,21 @@ namespace HiveEngineRenderer {
             stateStorageWrite.pImageInfo = nullptr;
             stateStorageWrite.pTexelBufferView = nullptr;
 
-            std::array<VkWriteDescriptorSet, 1> write_descriptors = {stateStorageWrite};
+            VkDescriptorImageInfo imageInfo = {};
+            imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            imageInfo.imageView = imageView;
+            imageInfo.sampler = textureSampler;
+
+            VkWriteDescriptorSet imageWrite = {};
+            imageWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            imageWrite.dstSet = descriptorSet;
+            imageWrite.dstBinding = 2;
+            imageWrite.dstArrayElement = 0;
+            imageWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            imageWrite.descriptorCount = 1;
+            imageWrite.pImageInfo = &imageInfo;
+
+            std::array<VkWriteDescriptorSet, 2> write_descriptors = {stateStorageWrite, imageWrite};
 
             vkUpdateDescriptorSets(get_context()->get_device(), write_descriptors.size(), write_descriptors.data(), 0,
                                    nullptr);
@@ -315,8 +337,6 @@ namespace HiveEngineRenderer {
     void ImageDrawing::draw(VkCommandBuffer cmd_buffer) {
         Drawing::draw(cmd_buffer);
         if (imos.size() > 0) {
-            this->update();
-
             if (!image_pushed) {
                 image_pushed = true;
                 get_context()->copy_texture_to_image(texture, textureImage);
@@ -356,6 +376,8 @@ namespace HiveEngineRenderer {
                 }
             }
 
+            this->update();
+
             vkCmdBindPipeline(cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
 
             VkDeviceSize offsets[] = {0};
@@ -374,6 +396,7 @@ namespace HiveEngineRenderer {
         if(image_pushed){
             vkDestroyImageView(get_context()->get_device(), imageView, nullptr);
             vkDestroySampler(get_context()->get_device(), textureSampler, nullptr);
+            image_pushed = false;
         }
 
         vmaDestroyImage(get_context()->get_allocator(), textureImage, textureAllocation);
@@ -393,10 +416,10 @@ namespace HiveEngineRenderer {
         vkDestroyPipelineLayout(get_context()->get_device(), pipelineLayout, nullptr);
     }
 
-    ImageDescription ImageDrawing::add_image(int texture_index, glm::vec3 position, float width, float height) {
+    ImageDescription ImageDrawing::add_image(glm::vec3 position, float width, float height) {
         ImageDescription id;
         ImageTriangleDescription itd;
-        itd.texture_index = texture_index;
+        itd.texture_index = 0;
 
         id.orientation = imos.add(create_aligned_image_orientation(position, width, height));
         id.itdesc1 = imtds.add(itd);
@@ -408,7 +431,7 @@ namespace HiveEngineRenderer {
     void ImageDrawing::remove_image(ImageDescription id) {
         imos.remove(id.orientation);
         ImageTriangleDescription itd;
-        itd.texture_index = -2;
+        itd.texture_index = -1;
         //itd.fallback_color = {1.0, 1.0, 1.0, 1.0};
         imtds.set(id.itdesc1, itd);
         imtds.set(id.itdesc2, itd);
