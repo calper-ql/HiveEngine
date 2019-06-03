@@ -39,7 +39,6 @@ namespace HiveEngineRenderer {
 
     class ImageDrawing : public Drawing {
     public:
-        HiveEngine::Buffer<HiveEngine::Texture> textures; // Textures
         HiveEngine::Buffer<ImageOrientation> imos; // Orientations
         HiveEngine::Buffer<ImageTriangleDescription> imtds; // Descriptions
 

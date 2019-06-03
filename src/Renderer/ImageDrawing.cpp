@@ -442,4 +442,8 @@ namespace HiveEngineRenderer {
     ImageDrawing::~ImageDrawing() {
 
     }
+
+    void ImageDrawing::edit_image_position(ImageDescription id, float width) {
+
+    }
 }
