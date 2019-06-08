@@ -74,7 +74,8 @@ namespace HiveEngineRenderer {
         void main_loop();
         void cleanup();
 
-        void copy_texture_to_image(HiveEngine::Texture texture, VkImage image);
+        void copy_texture_to_image(HiveEngine::Texture texture, VkImage image, VkImageLayout layout);
+        void transition_image_layout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
 
         VkCommandBuffer begin_instant_command();
         void end_instant_command(VkCommandBuffer cmd);

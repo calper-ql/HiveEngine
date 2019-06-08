@@ -169,7 +169,7 @@ namespace HiveEngineRenderer {
             bool layerFound = false;
 
             for (const auto& layerProperties : availableLayers) {
-                std::cout << layerProperties.layerName << std::endl;
+                //std::cout << layerProperties.layerName << std::endl;
                 if (strcmp(layerName, layerProperties.layerName) == 0) {
                     layerFound = true;
                     break;
@@ -716,7 +716,7 @@ namespace HiveEngineRenderer {
         vkDeviceWaitIdle(device);
     }
 
-    void Context::copy_texture_to_image(HiveEngine::Texture texture, VkImage image) {
+    void Context::copy_texture_to_image(HiveEngine::Texture texture, VkImage image, VkImageLayout layout) {
         VkBuffer tempBuffer = nullptr;
         VmaAllocation tempAllocation = nullptr;
 
@@ -754,7 +754,7 @@ namespace HiveEngineRenderer {
         VkCommandBuffer cmd = begin_instant_command();
 
         vkCmdCopyBufferToImage(cmd, tempBuffer, image,
-                               VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+                               layout, 1, &region);
 
         end_instant_command(cmd);
 
@@ -792,6 +792,54 @@ namespace HiveEngineRenderer {
         vkQueueWaitIdle(graphics_queue);
 
         vkFreeCommandBuffers(device, command_pool, 1, &cmd);
+    }
+
+    void
+    Context::transition_image_layout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout) {
+        VkCommandBuffer commandBuffer = begin_instant_command();
+
+        VkImageMemoryBarrier barrier = {};
+        barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+        barrier.oldLayout = oldLayout;
+        barrier.newLayout = newLayout;
+        barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        barrier.image = image;
+        barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        barrier.subresourceRange.baseMipLevel = 0;
+        barrier.subresourceRange.levelCount = 1;
+        barrier.subresourceRange.baseArrayLayer = 0;
+        barrier.subresourceRange.layerCount = 1;
+
+        VkPipelineStageFlags sourceStage;
+        VkPipelineStageFlags destinationStage;
+
+        if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
+            barrier.srcAccessMask = 0;
+            barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+
+            sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+            destinationStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+        } else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+            barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+            barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+            sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+            destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+        } else {
+            throw std::invalid_argument("unsupported layout transition!");
+        }
+
+        vkCmdPipelineBarrier(
+                commandBuffer,
+                sourceStage, destinationStage,
+                0,
+                0, nullptr,
+                0, nullptr,
+                1, &barrier
+        );
+
+        end_instant_command(commandBuffer);
     }
 
 

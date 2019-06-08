@@ -56,7 +56,7 @@ namespace HiveEngineRenderer {
         imageInfo.arrayLayers = 1;
         imageInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
         imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-        imageInfo.initialLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
         imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
         imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
         imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
@@ -339,7 +339,10 @@ namespace HiveEngineRenderer {
         if (imos.size() > 0) {
             if (!image_pushed) {
                 image_pushed = true;
-                get_context()->copy_texture_to_image(texture, textureImage);
+
+                get_context()->transition_image_layout(textureImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+                get_context()->copy_texture_to_image(texture, textureImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+                get_context()->transition_image_layout(textureImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
                 VkImageViewCreateInfo viewInfo = {};
                 viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -394,6 +397,8 @@ namespace HiveEngineRenderer {
         Drawing::cleanup();
 
         if(image_pushed){
+            //get_context()->transition_image_layout(textureImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
             vkDestroyImageView(get_context()->get_device(), imageView, nullptr);
             vkDestroySampler(get_context()->get_device(), textureSampler, nullptr);
             image_pushed = false;

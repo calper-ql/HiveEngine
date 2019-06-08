@@ -4,7 +4,7 @@ project(HiveEngine VERSION 1.0.0 LANGUAGES CXX)
 option(BUILD_RENDERER "Build the renderer for HiveEngine" OFF)
 
 if(BUILD_RENDERER)
-    add_subdirectory(freetype-2.10.0)
+    add_subdirectory(third_party/freetype-2.10.0)
 
     set(Vulkan_INCLUDE_DIR /home/calper//SDK/Vulkan-1.1.106.0/x86_64)
     IF (WIN32)
@@ -26,11 +26,11 @@ if(BUILD_RENDERER)
     set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
     set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
     set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-    add_subdirectory(glfw-3.3)
+    add_subdirectory(third_party/glfw-3.3)
 endif(BUILD_RENDERER)
 
 set(GLM_TEST_ENABLE OFF CACHE BOOL "" FORCE)
-add_subdirectory(glm)
+add_subdirectory(third_party/glm)
 
 set(SOURCES src/HiveEngine.cpp include/HiveEngine/LODSquare.h src/LODSquare.cpp include/HiveEngine/DynamicSphere.h include/HiveEngine/RadialGenerator.h src/RadialGenerator.cpp include/HiveEngine/Texture.h src/DynamicSphere.cpp include/HiveEngine/Entity.h src/Entity.cpp include/HiveEngine/Utilities.h src/Utilities.cpp include/HiveEngine/Common.h src/Common.cpp include/HiveEngine/Mesh.h include/HiveEngine/Buffer.hpp include/HiveEngine/stb/stb_image.h)
 
