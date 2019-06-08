@@ -8,6 +8,7 @@
 #include <HiveEngine/Renderer/StandardDirective.h>
 #include <HiveEngine/Renderer/LineDrawing.h>
 #include <HiveEngine/Renderer/ImageDrawing.h>
+#include <HiveEngine/Renderer/FontManager.h>
 
 #include <random>
 
@@ -28,6 +29,9 @@ int main(int argc, char* argv[]){
     auto test_directive = new HiveEngineRenderer::StandardDirective(&context);
     auto line_drawing = new HiveEngineRenderer::LineDrawing(test_directive, &camera);
     auto image_drawing = new HiveEngineRenderer::ImageDrawing(test_directive, statue_texture);
+    
+    HiveEngineRenderer::FontManager font_manager;
+    font_manager.load_font("expanse", "../data/TheExpanse.ttf");
 
     test_directive->register_drawing(line_drawing);
     test_directive->register_drawing(image_drawing);
@@ -78,7 +82,6 @@ int main(int argc, char* argv[]){
         image_drawing->add_image({0.0+i/(float)20, 0.0, 0.0}, 0.2, 0.2);
     }
 
-
     try {
         context.init_window();
         context.init_vulkan();
@@ -113,6 +116,8 @@ int main(int argc, char* argv[]){
         std::cerr << e.what() << std::endl;
         return EXIT_FAILURE;
     }
+
+
 
     return EXIT_SUCCESS;
 }

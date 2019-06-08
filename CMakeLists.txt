@@ -4,6 +4,8 @@ project(HiveEngine VERSION 1.0.0 LANGUAGES CXX)
 option(BUILD_RENDERER "Build the renderer for HiveEngine" OFF)
 
 if(BUILD_RENDERER)
+    add_subdirectory(freetype-2.10.0)
+
     set(Vulkan_INCLUDE_DIR /home/calper//SDK/Vulkan-1.1.106.0/x86_64)
     IF (WIN32)
         set(Vulkan_INCLUDE_DIR C:/VulkanSDK/1.1.106.0/)
@@ -33,7 +35,7 @@ add_subdirectory(glm)
 set(SOURCES src/HiveEngine.cpp include/HiveEngine/LODSquare.h src/LODSquare.cpp include/HiveEngine/DynamicSphere.h include/HiveEngine/RadialGenerator.h src/RadialGenerator.cpp include/HiveEngine/Texture.h src/DynamicSphere.cpp include/HiveEngine/Entity.h src/Entity.cpp include/HiveEngine/Utilities.h src/Utilities.cpp include/HiveEngine/Common.h src/Common.cpp include/HiveEngine/Mesh.h include/HiveEngine/Buffer.hpp include/HiveEngine/stb/stb_image.h)
 
 if(BUILD_RENDERER)
-    set(SOURCES ${SOURCES} include/HiveEngine/Renderer/Context.h src/Renderer/Context.cpp include/HiveEngine/Renderer/Directive.h src/Renderer/Directive.cpp include/HiveEngine/Renderer/StandardDirective.h src/Renderer/StandardDirective.cpp include/HiveEngine/Renderer/vk_mem_alloc.h include/HiveEngine/Renderer/Drawing.h src/Renderer/Drawing.cpp include/HiveEngine/Renderer/LineDrawing.h src/Renderer/LineDrawing.cpp  src/Texture.cpp include/HiveEngine/Renderer/ImageDrawing.h src/Renderer/ImageDrawing.cpp include/HiveEngine/Renderer/Camera.h src/Renderer/Camera.cpp)
+    set(SOURCES ${SOURCES} include/HiveEngine/Renderer/Context.h src/Renderer/Context.cpp include/HiveEngine/Renderer/Directive.h src/Renderer/Directive.cpp include/HiveEngine/Renderer/StandardDirective.h src/Renderer/StandardDirective.cpp include/HiveEngine/Renderer/vk_mem_alloc.h include/HiveEngine/Renderer/Drawing.h src/Renderer/Drawing.cpp include/HiveEngine/Renderer/LineDrawing.h src/Renderer/LineDrawing.cpp  src/Texture.cpp include/HiveEngine/Renderer/ImageDrawing.h src/Renderer/ImageDrawing.cpp include/HiveEngine/Renderer/Camera.h src/Renderer/Camera.cpp include/HiveEngine/Renderer/FontManager.h src/Renderer/FontManager.cpp)
     file(GLOB_RECURSE GLSL_SOURCE_FILES
             "shaders/*.frag"
             "shaders/*.vert"
@@ -70,12 +72,12 @@ ELSE()
     target_link_libraries(HiveEngine PUBLIC stdc++fs)
 ENDIF()
 
-add_custom_target(copy-data-files ALL
-        COMMAND cmake -E copy_directory ${CMAKE_SOURCE_DIR}/data ${CMAKE_BINARY_DIR}/data
-        DEPENDS ${HiveEngine})
+add_custom_target(copy-data-folder ALL
+        COMMAND cmake -E copy_directory ${CMAKE_SOURCE_DIR}/data ${CMAKE_BINARY_DIR}/data)
 
 if(BUILD_RENDERER)
-    target_link_libraries(HiveEngine PUBLIC glfw)
+    target_link_libraries(HiveEngine PUBLIC freetype)
+    target_link_libraries(HiveEngine PUBLIC glfw ${GLFW_LIBRARIES})
     target_link_libraries(HiveEngine PUBLIC ${Vulkan_LIBRARIES})
     add_dependencies(HiveEngine Shaders)
 endif(BUILD_RENDERER)

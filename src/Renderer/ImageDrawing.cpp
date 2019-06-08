@@ -432,18 +432,18 @@ namespace HiveEngineRenderer {
         imos.remove(id.orientation);
         ImageTriangleDescription itd;
         itd.texture_index = -1;
-        //itd.fallback_color = {1.0, 1.0, 1.0, 1.0};
+
         imtds.set(id.itdesc1, itd);
         imtds.set(id.itdesc2, itd);
         imtds.remove(id.itdesc1);
         imtds.remove(id.itdesc2);
+        imos.remove(id.orientation);
     }
 
     ImageDrawing::~ImageDrawing() {
 
     }
 
-    void ImageDrawing::edit_image_position(ImageDescription id, float width) {
 
-    }
+
 }

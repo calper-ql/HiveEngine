@@ -151,8 +151,9 @@ namespace HiveEngineRenderer {
             createInfo.enabledLayerCount = 0;
         }
 
-        if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS) {
-            throw std::runtime_error("failed to create instance!");
+        auto rval = vkCreateInstance(&createInfo, nullptr, &instance);
+        if (rval != VK_SUCCESS) {
+            throw std::runtime_error("failed to create instance! " + std::to_string(rval));
         }
 
     }
