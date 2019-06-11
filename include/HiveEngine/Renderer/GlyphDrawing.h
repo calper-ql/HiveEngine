@@ -39,8 +39,6 @@ namespace HiveEngineRenderer {
         size_t itdesc2;
     };
 
-    ImageOrientation create_aligned_image_orientation(glm::vec3 position, float width, float height);
-
     class GlyphDrawing : public Drawing {
     public:
         HiveEngine::Buffer<ImageOrientation> imos; // Orientations
@@ -84,7 +82,7 @@ namespace HiveEngineRenderer {
 
         void cleanup() override;
 
-        ImageDescription add_image(glm::vec3 position, float width, float height, glm::vec4 color);
+        ImageDescription add_image_center(glm::vec3 position, float width, float height, glm::vec4 color);
 
         ImageDescription add_image_lower_left(glm::vec3 position, float width, float height, glm::vec4 color);
 

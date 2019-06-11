@@ -64,7 +64,7 @@ namespace HiveEngineRenderer {
                 if(str[i] != ' '){
                     glm::vec3 glyph_center = start;
                     glyph_center.x += glyphs[str[i]].metrics.horiBearingX*scale;
-                    glyph_center.y -= (glyphs[str[i]].metrics.horiBearingY*scale);
+                    glyph_center.y -= (glyphs[str[i]].metrics.horiBearingY*scale) + height*scale/2.0f;
 
                     td.glyphs.push_back(glyph_drawings[str[i]]->add_image_lower_left(
                             glyph_center,

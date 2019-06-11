@@ -8,35 +8,6 @@
 
 namespace HiveEngineRenderer {
 
-    ImageOrientation create_aligned_image_orientation(glm::vec3 position, float width, float height) {
-        ImageOrientation io = {};
-
-        float left = position.x - width / 2.0f;
-        float right = position.x + width / 2.0f;
-        float up = position.y + height / 2.0f;
-        float down = position.y - height / 2.0f;
-
-        io.f0 = {left, up, position.z};
-        io.f0uv = {0.0f, 1.0f};
-
-        io.f1 = {right, up, position.z};
-        io.f1uv = {1.0f, 1.0f};
-
-        io.f2 = {right, down, position.z};
-        io.f2uv = {1.0f, 0.0f};
-
-        io.f3 = {right, down, position.z};
-        io.f3uv = {1.0f, 0.0f};
-
-        io.f4 = {left, down, position.z};
-        io.f4uv = {0.0f, 0.0f};
-
-        io.f5 = {left, up, position.z};
-        io.f5uv = {0.0f, 1.0f};
-
-        return io;
-    }
-
     GlyphDrawing::GlyphDrawing(Directive *directive, HiveEngine::Texture texture) : Drawing(directive) {
         this->texture = texture;
 
@@ -484,7 +455,8 @@ namespace HiveEngineRenderer {
         vkDestroyPipelineLayout(get_context()->get_device(), pipelineLayout, nullptr);
     }
 
-    ImageDescription GlyphDrawing::add_image(glm::vec3 position, float width, float height, glm::vec4 color) {
+    ImageDescription
+    GlyphDrawing::add_image_center(glm::vec3 position, float width, float height, glm::vec4 color) {
         ImageDescription id;
 
         ImageTriangleDescription itd;
@@ -493,27 +465,36 @@ namespace HiveEngineRenderer {
         ImageColorDescription icd;
         icd.color = color;
 
-        id.orientation = imos.add(create_aligned_image_orientation(position, width, height));
+        ImageOrientation io = {};
+
+        float left = position.x - width / 2.0f;
+        float right = position.x + width / 2.0f;
+        float up = position.y + height / 2.0f;
+        float down = position.y - height / 2.0f;
+
+        io.f0 = {left, up, position.z};
+        io.f0uv = {0.0f, 1.0f};
+
+        io.f1 = {right, up, position.z};
+        io.f1uv = {1.0f, 1.0f};
+
+        io.f2 = {right, down, position.z};
+        io.f2uv = {1.0f, 0.0f};
+
+        io.f3 = {right, down, position.z};
+        io.f3uv = {1.0f, 0.0f};
+
+        io.f4 = {left, down, position.z};
+        io.f4uv = {0.0f, 0.0f};
+
+        io.f5 = {left, up, position.z};
+        io.f5uv = {0.0f, 1.0f};
+
+        id.orientation = imos.add(io);
         id.itdesc1 = imtds.add(itd); icds.add(icd);
         id.itdesc2 = imtds.add(itd); icds.add(icd);
 
         return id;
-    }
-
-    void GlyphDrawing::remove_image(ImageDescription id) {
-        imos.remove(id.orientation);
-        ImageTriangleDescription itd;
-        itd.texture_index = -1;
-
-        imtds.set(id.itdesc1, itd);
-        imtds.set(id.itdesc2, itd);
-        imtds.remove(id.itdesc1); icds.remove(id.itdesc1);
-        imtds.remove(id.itdesc2); icds.remove(id.itdesc2);
-        imos.remove(id.orientation);
-    }
-
-    GlyphDrawing::~GlyphDrawing() {
-
     }
 
     ImageDescription
@@ -557,6 +538,24 @@ namespace HiveEngineRenderer {
 
         return id;
     }
+
+
+    void GlyphDrawing::remove_image(ImageDescription id) {
+        imos.remove(id.orientation);
+        ImageTriangleDescription itd;
+        itd.texture_index = -1;
+
+        imtds.set(id.itdesc1, itd);
+        imtds.set(id.itdesc2, itd);
+        imtds.remove(id.itdesc1); icds.remove(id.itdesc1);
+        imtds.remove(id.itdesc2); icds.remove(id.itdesc2);
+        imos.remove(id.orientation);
+    }
+
+    GlyphDrawing::~GlyphDrawing() {
+
+    }
+
 
 
 }

@@ -43,10 +43,10 @@ int main(int argc, char* argv[]){
     test_directive->register_drawing(font_drawing);
     test_directive->register_drawing(text_drawing);
 
-    text_drawing->add_text_center("The Expanse 131 ,.,^%$", {0.0, -0.9, 0.0}, 0.1);
+    text_drawing->add_text_center("The Expanse 131 ,.,^%$", {0.0, -0.95, 0.0}, 0.05);
     text_drawing->add_text_center("The Expanse", {0.0, 0.0, 0.0}, 0.1);
 
-    //font_drawing->add_image({-0.6, 0.0, 0.0}, glyph.texture.width/1000.0, glyph.texture.height/1000.0, {0.0, 1.0, 0.0, 1.0});
+    //font_drawing->add_image_center({-0.6, 0.0, 0.0}, glyph.texture.width/1000.0, glyph.texture.height/1000.0, {0.0, 1.0, 0.0, 1.0});
 
     std::default_random_engine g;
     std::uniform_real_distribution<float> d(-0.3f, 0.3f);
