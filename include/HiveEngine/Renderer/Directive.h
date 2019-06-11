@@ -10,16 +10,22 @@
 namespace HiveEngineRenderer {
     class Directive {
     private:
-        Context* context;
+        Context *context;
 
     public:
-        Directive(Context* context);
+        Directive(Context *context);
+
         virtual ~Directive();
+
         virtual void init_frame_buffers();
+
         virtual void init_command_buffer();
+
         virtual void cleanup();
+
         virtual VkCommandBuffer get_command_buffer(uint8_t idx);
-        Context* get_context();
+
+        Context *get_context();
     };
 }
 

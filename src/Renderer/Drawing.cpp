@@ -7,7 +7,7 @@
 namespace HiveEngineRenderer {
 
     Drawing::Drawing(Directive *directive) {
-        if(directive == nullptr){
+        if (directive == nullptr) {
             throw std::runtime_error("failure, drawing was passed a nullptr directive");
         }
         this->directive = directive;

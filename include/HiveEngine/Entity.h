@@ -29,15 +29,15 @@ namespace HiveEngine {
 
         glm::dmat3 calculated_moment_of_inertia;
 
-        Entity* parent; // parent link
-        std::vector<Entity*> children;
+        Entity *parent; // parent link
+        std::vector<Entity *> children;
 
         std::vector<Force> applied_forces;
 
         /* ========= Internal Functions =========  */
         glm::dvec3 calculate_relative_position();
 
-        glm::dvec3 calculate_relative_position(Entity* from);
+        glm::dvec3 calculate_relative_position(Entity *from);
 
     public:
         Entity(glm::dvec3 position, double radius, double mass);
@@ -50,7 +50,7 @@ namespace HiveEngine {
 
         double calculate_total_mass();
 
-        void add_child(Entity* c);
+        void add_child(Entity *c);
 
         void erase_children_vector();
 
@@ -62,7 +62,7 @@ namespace HiveEngine {
 
         virtual void apply_force(glm::dvec3 leverage, glm::dvec3 force, bool is_relative);
 
-        void get_all_children(std::vector<Entity*> *list);
+        void get_all_children(std::vector<Entity *> *list);
 
         CentralMass calculate_central_mass();
 

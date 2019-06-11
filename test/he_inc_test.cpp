@@ -7,8 +7,9 @@
 #include <HiveEngine/Renderer/Context.h>
 #include <HiveEngine/Renderer/StandardDirective.h>
 #include <HiveEngine/Renderer/LineDrawing.h>
-#include <HiveEngine/Renderer/ImageDrawing.h>
+#include <HiveEngine/Renderer/GlyphDrawing.h>
 #include <HiveEngine/Renderer/FontManager.h>
+#include <HiveEngine/Renderer/TextDrawing.h>
 
 #include <random>
 
@@ -28,13 +29,24 @@ int main(int argc, char* argv[]){
     HiveEngineRenderer::Context context;
     auto test_directive = new HiveEngineRenderer::StandardDirective(&context);
     auto line_drawing = new HiveEngineRenderer::LineDrawing(test_directive, &camera);
-    auto image_drawing = new HiveEngineRenderer::ImageDrawing(test_directive, statue_texture);
-    
+
     HiveEngineRenderer::FontManager font_manager;
     font_manager.load_font("expanse", "../data/TheExpanse.ttf");
+    font_manager.load_font("ffdin", "../data/ffdin.ttf");
+
+    auto glyph = font_manager.get_glyph("ffdin", 'g');
+    auto font_drawing = new HiveEngineRenderer::GlyphDrawing(test_directive, glyph.texture);
+
+    auto text_drawing = new HiveEngineRenderer::TextDrawing(test_directive, &font_manager, "ffdin");
 
     test_directive->register_drawing(line_drawing);
-    test_directive->register_drawing(image_drawing);
+    test_directive->register_drawing(font_drawing);
+    test_directive->register_drawing(text_drawing);
+
+    text_drawing->add_text_center("The Expanse 131 ,.,^%$", {0.0, -0.9, 0.0}, 0.1);
+    text_drawing->add_text_center("The Expanse", {0.0, 0.0, 0.0}, 0.1);
+
+    //font_drawing->add_image({-0.6, 0.0, 0.0}, glyph.texture.width/1000.0, glyph.texture.height/1000.0, {0.0, 1.0, 0.0, 1.0});
 
     std::default_random_engine g;
     std::uniform_real_distribution<float> d(-0.3f, 0.3f);
@@ -74,13 +86,6 @@ int main(int argc, char* argv[]){
         line_drawing->line_buffer.remove(i);
     }
 
-    image_drawing->add_image({-0.6, 0.0, 0.0}, 0.4, 0.4);
-    image_drawing->add_image({-0.5, 0.0, 0.0}, 0.4, 0.4);
-    image_drawing->add_image({0.5, 0.5, 0.0}, 0.4, 0.4);
-
-    for(int i = 0; i < 15; ++i){
-        image_drawing->add_image({0.0+i/(float)20, 0.0, 0.0}, 0.2, 0.2);
-    }
 
     try {
         context.init_window();

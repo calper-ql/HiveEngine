@@ -7,7 +7,7 @@
 namespace HiveEngineRenderer {
 
     Directive::Directive(Context *context) {
-        if(context == nullptr) throw std::runtime_error("A Directive was passed a nullptr context!");
+        if (context == nullptr) throw std::runtime_error("A Directive was passed a nullptr context!");
         this->context = context;
         context->register_directive(this);
     }

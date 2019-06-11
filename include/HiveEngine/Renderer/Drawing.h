@@ -15,23 +15,28 @@ namespace HiveEngineRenderer {
     private:
         bool enabled = true;
         bool inited = false;
-        Directive* directive;
+        Directive *directive;
 
     public:
-        Drawing(Directive* directive);
+        Drawing(Directive *directive);
 
         virtual void init(VkRenderPass render_pass);
+
         virtual void draw(VkCommandBuffer cmd_buffer);
+
         virtual void cleanup();
 
         virtual void enable();
+
         virtual void disable();
+
         virtual bool is_enabled();
 
         virtual bool is_inited();
 
-        virtual Context* get_context();
-        virtual Directive* get_directive();
+        virtual Context *get_context();
+
+        virtual Directive *get_directive();
     };
 }
 

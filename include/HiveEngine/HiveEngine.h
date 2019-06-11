@@ -15,6 +15,7 @@ namespace HiveEngine {
     extern double epsilon;
 
     int get_major_version();
+
     int get_minor_version();
 }
 

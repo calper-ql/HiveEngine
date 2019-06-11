@@ -51,9 +51,9 @@ namespace HiveEngine {
     }
 
     void LODSquare::populate_vertices() {
-        vertices.resize(size*size);
-        normals.resize(size*size, {0, 0, 0});
-        uvs.resize(size*size);
+        vertices.resize(size * size);
+        normals.resize(size * size, {0, 0, 0});
+        uvs.resize(size * size);
 
         if (!parent) {
             float itr1 = glm::distance(lu, ld) / (size - 1);
@@ -72,24 +72,23 @@ namespace HiveEngine {
                 glm::vec3 tside = lside;
 
                 for (unsigned j = 0; j < size; j++) {
-                    vertices[i*size + j] = tside;
-                    uvs[i*size + j] = { i / (float)(size - 1), j / (float)(size - 1) };
+                    vertices[i * size + j] = tside;
+                    uvs[i * size + j] = {i / (float) (size - 1), j / (float) (size - 1)};
                     tside += dir3 * itr3;
                 }
 
                 lside += dir1 * itr1;
                 rside += dir2 * itr2;
             }
-        }
-        else {
+        } else {
             unsigned m = size / 2;
             unsigned xstart = p_left() ? 0 : m;
             unsigned ystart = p_up() ? 0 : m;
 
             for (unsigned i = 0; i < m + 1; i++) {
                 for (unsigned j = 0; j < m + 1; j++) {
-                    auto idx1 = (ystart + i)*size + (xstart)+j;
-                    auto idx2 = ((i * 2)*size) + (j * 2);
+                    auto idx1 = (ystart + i) * size + (xstart) + j;
+                    auto idx2 = ((i * 2) * size) + (j * 2);
                     auto vec = parent->vertices[idx1];
                     vertices[idx2] = vec;
                 }
@@ -97,16 +96,16 @@ namespace HiveEngine {
 
             for (unsigned i = 1; i < size; i += 2) {
                 for (unsigned j = 1; j < size; j += 2) {
-                    auto luside = vertices[(i - 1)*size + j - 1];
-                    auto ruside = vertices[(i - 1)*size + j + 1];
-                    auto ldside = vertices[(i + 1)*size + j - 1];
-                    auto rdside = vertices[(i + 1)*size + j + 1];
+                    auto luside = vertices[(i - 1) * size + j - 1];
+                    auto ruside = vertices[(i - 1) * size + j + 1];
+                    auto ldside = vertices[(i + 1) * size + j - 1];
+                    auto rdside = vertices[(i + 1) * size + j + 1];
                     auto vec = (luside + ruside + ldside + rdside) / 4.0f;
-                    vertices[(i)*size + j] = vec;
-                    vertices[(i - 1)*size + j] = (luside + ruside) / 2.0f;
-                    vertices[(i + 1)*size + j] = (ldside + rdside) / 2.0f;
-                    vertices[(i)*size + j - 1] = (luside + ldside) / 2.0f;
-                    vertices[(i)*size + j + 1] = (ruside + rdside) / 2.0f;
+                    vertices[(i) * size + j] = vec;
+                    vertices[(i - 1) * size + j] = (luside + ruside) / 2.0f;
+                    vertices[(i + 1) * size + j] = (ldside + rdside) / 2.0f;
+                    vertices[(i) * size + j - 1] = (luside + ldside) / 2.0f;
+                    vertices[(i) * size + j + 1] = (ruside + rdside) / 2.0f;
                 }
             }
             uvs = parent->uvs;
@@ -116,17 +115,17 @@ namespace HiveEngine {
 
     }
 
-    std::vector<glm::uvec3> gen_t(unsigned x, unsigned y, unsigned xstride, unsigned ystride, unsigned size, bool ying) {
+    std::vector<glm::uvec3>
+    gen_t(unsigned x, unsigned y, unsigned xstride, unsigned ystride, unsigned size, bool ying) {
         std::vector<glm::uvec3> v;
         unsigned _lu = y * size + x;
         unsigned _ru = y * size + x + xstride;
-        unsigned _ld = (y + ystride)*size + x;
-        unsigned _rd = (y + ystride)*size + x + xstride;
+        unsigned _ld = (y + ystride) * size + x;
+        unsigned _rd = (y + ystride) * size + x + xstride;
         if (ying) { //    |/|
             v.emplace_back(_ld, _lu, _ru);
             v.emplace_back(_ld, _rd, _ru);
-        }
-        else { // yang |\|
+        } else { // yang |\|
             v.emplace_back(_lu, _ru, _rd);
             v.emplace_back(_lu, _ld, _rd);
         }
@@ -134,6 +133,7 @@ namespace HiveEngine {
     }
 
     unsigned __lod_get_x(unsigned index, unsigned size) { return index % size; }
+
     unsigned __lod_get_y(unsigned index, unsigned size) { return index / size; }
 
     void LODSquare::process_tile(std::vector<glm::uvec3> d, bool ying) {
@@ -164,8 +164,7 @@ namespace HiveEngine {
                 else if (rn->depth < depth) pass_one = false;
             }
 
-        }
-        else {
+        } else {
             if (__lod_get_y(d[0].x, size) == 0) {
                 //d[0].y += 1;
                 if (!un) d[0].y += 1;
@@ -174,7 +173,7 @@ namespace HiveEngine {
 
             if (__lod_get_y(d[1].z, size) == size - 1) {
                 //pass_one = false;
-                if (!dn)  pass_one = false;
+                if (!dn) pass_one = false;
                 else if (dn->depth < depth) pass_one = false;
             }
 
@@ -201,7 +200,7 @@ namespace HiveEngine {
         }
     }
 
-    void LODSquare::populate_indices(){
+    void LODSquare::populate_indices() {
         if (!changed) {
             if (last_state == get_state()) return;
             last_state = get_state();
@@ -210,7 +209,7 @@ namespace HiveEngine {
 
         indices.clear();
         __indice_iter = 0;
-        indices.resize((size-1)*(size-1) * 2, { 0, 0, 0 });
+        indices.resize((size - 1) * (size - 1) * 2, {0, 0, 0});
 
         if (parent) {
             set_neighbor(p_up() ? LODSquareSide::DOWN : LODSquareSide::UP, parent->get_sub_lod(p_left(), !p_up()));
@@ -270,10 +269,10 @@ namespace HiveEngine {
     }
 
     glm::vec3 LODSquare::get_center() {
-        return vertices[(size / 2)*size + (size / 2)];
+        return vertices[(size / 2) * size + (size / 2)];
     }
 
-    LODSquare* LODSquare::create_sub_lod(bool left, bool up) {
+    LODSquare *LODSquare::create_sub_lod(bool left, bool up) {
         if (get_sub_lod(left, up)) return get_sub_lod(left, up);
 
         unsigned m = size / 2;
@@ -281,10 +280,10 @@ namespace HiveEngine {
         unsigned ystart = up ? 0 : m;
 
         auto temp = new LODSquare(size, depth + 1,
-                                  vertices[ystart*size + xstart],
-                                  vertices[ystart*size + (xstart + m)],
-                                  vertices[(ystart + m)*size + (xstart + m)],
-                                  vertices[(ystart + m)*size + xstart]);
+                                  vertices[ystart * size + xstart],
+                                  vertices[ystart * size + (xstart + m)],
+                                  vertices[(ystart + m) * size + (xstart + m)],
+                                  vertices[(ystart + m) * size + xstart]);
 
         set_sub_lod(left, up, temp);
         temp->parent = this;
@@ -294,15 +293,13 @@ namespace HiveEngine {
         if (parent) {
             if (p_left()) {
                 if (!left) parent->create_sub_lod(false, p_up());
-            }
-            else {
+            } else {
                 if (left) parent->create_sub_lod(true, p_up());
             }
 
             if (p_up()) {
                 if (!up) parent->create_sub_lod(p_left(), false);
-            }
-            else {
+            } else {
                 if (up) parent->create_sub_lod(p_left(), true);
             }
         }
@@ -339,11 +336,11 @@ namespace HiveEngine {
 
         changed = true;
 
-        return  temp;
+        return temp;
     }
 
     unsigned LODSquare::erase_sub_load(bool left, bool up, unsigned max_allowed) {
-        LODSquare* temp = get_sub_lod(left, up);
+        LODSquare *temp = get_sub_lod(left, up);
 
         if (temp == nullptr) return 0;
 
@@ -417,8 +414,7 @@ namespace HiveEngine {
         if (changed) {
             changed = false;
             return true;
-        }
-        else {
+        } else {
             return false;
         }
     }
@@ -428,23 +424,23 @@ namespace HiveEngine {
         unsigned xstart = left ? 0 : m;
         unsigned ystart = up ? 0 : m;
 
-        auto __lu = vertices[ystart*size + xstart];
-        auto __ru = vertices[ystart*size + (xstart + m)];
-        auto __rd = vertices[(ystart + m)*size + (xstart + m)];
-        auto __ld = vertices[(ystart + m)*size + xstart];
+        auto __lu = vertices[ystart * size + xstart];
+        auto __ru = vertices[ystart * size + (xstart + m)];
+        auto __rd = vertices[(ystart + m) * size + (xstart + m)];
+        auto __ld = vertices[(ystart + m) * size + xstart];
 
         auto t3 = (__lu + __ru + __rd + __ld) / 4.0f;
         auto ma = std::max(std::max(glm::distance(__lu, t3), glm::distance(__ld, t3)),
                            std::max(glm::distance(__ru, t3), glm::distance(__rd, t3)));
-        return{ t3.x, t3.y, t3.z, ma };
+        return {t3.x, t3.y, t3.z, ma};
 
     }
 
     void LODSquare::reset_corners() {
         lu = vertices[0 * size + 0];
         ru = vertices[0 * size + (size - 1)];
-        ld = vertices[(size - 1)*size + 0];
-        rd = vertices[(size - 1)*size + (size - 1)];
+        ld = vertices[(size - 1) * size + 0];
+        rd = vertices[(size - 1) * size + (size - 1)];
     }
 
     void LODSquare::equalize_out_corners(bool left, bool up) {
@@ -452,8 +448,7 @@ namespace HiveEngine {
             if (ln) {
                 ln = ln->request_equalize(this, get_parent_direction_side(LODSquareSide::LEFT));
             }
-        }
-        else {
+        } else {
             if (rn) {
                 rn = rn->request_equalize(this, get_parent_direction_side(LODSquareSide::RIGHT));
             }
@@ -463,8 +458,7 @@ namespace HiveEngine {
             if (un) {
                 un = un->request_equalize(this, get_parent_direction_side(LODSquareSide::UP));
             }
-        }
-        else {
+        } else {
             if (dn) {
                 dn = dn->request_equalize(this, get_parent_direction_side(LODSquareSide::DOWN));
             }
@@ -474,26 +468,30 @@ namespace HiveEngine {
 
     unsigned LODSquare::get_dependency_count() {
         unsigned dependency = 0;
-        if (ln)if (ln->depth == depth) {
+        if (ln)
+            if (ln->depth == depth) {
                 if (ln->ruc) dependency++;
                 if (ln->rdc) dependency++;
             }
-        if (rn)if (rn->depth == depth) {
+        if (rn)
+            if (rn->depth == depth) {
                 if (rn->luc) dependency++;
                 if (rn->ldc) dependency++;
             }
-        if (un)if (un->depth == depth) {
+        if (un)
+            if (un->depth == depth) {
                 if (un->ldc) dependency++;
                 if (un->rdc) dependency++;
             }
-        if (dn)if (dn->depth == depth) {
+        if (dn)
+            if (dn->depth == depth) {
                 if (dn->ruc) dependency++;
                 if (dn->luc) dependency++;
             }
         return dependency;
     }
 
-    LODSquareSide LODSquare::side_of(LODSquare* other) {
+    LODSquareSide LODSquare::side_of(LODSquare *other) {
         if (other == ln) return LODSquareSide::LEFT;
         if (other == rn) return LODSquareSide::RIGHT;
         if (other == un) return LODSquareSide::UP;
@@ -512,44 +510,37 @@ namespace HiveEngine {
                 auto val = create_sub_lod(true, true);
                 val->set_neighbor(LODSquareSide::LEFT, requester);
                 return val;
-            }
-            else if (request_side == LODSquareSide::RIGHT) {
+            } else if (request_side == LODSquareSide::RIGHT) {
                 auto val = create_sub_lod(true, false);
                 val->set_neighbor(LODSquareSide::LEFT, requester);
                 return val;
             }
-        }
-        else if (requester->parent == un) {
+        } else if (requester->parent == un) {
             if (request_side == LODSquareSide::LEFT) {
                 auto val = create_sub_lod(false, true);
                 val->set_neighbor(LODSquareSide::UP, requester);
                 return val;
-            }
-            else if (request_side == LODSquareSide::RIGHT) {
+            } else if (request_side == LODSquareSide::RIGHT) {
                 auto val = create_sub_lod(true, true);
                 val->set_neighbor(LODSquareSide::UP, requester);
                 return val;
             }
-        }
-        else if (requester->parent == rn) {
+        } else if (requester->parent == rn) {
             if (request_side == LODSquareSide::LEFT) {
                 auto val = create_sub_lod(false, false);
                 val->set_neighbor(LODSquareSide::RIGHT, requester);
                 return val;
-            }
-            else if (request_side == LODSquareSide::RIGHT) {
+            } else if (request_side == LODSquareSide::RIGHT) {
                 auto val = create_sub_lod(false, true);
                 val->set_neighbor(LODSquareSide::RIGHT, requester);
                 return val;
             }
-        }
-        else if (requester->parent == dn) {
+        } else if (requester->parent == dn) {
             if (request_side == LODSquareSide::LEFT) {
                 auto val = create_sub_lod(true, false);
                 val->set_neighbor(LODSquareSide::DOWN, requester);
                 return val;
-            }
-            else if (request_side == LODSquareSide::RIGHT) {
+            } else if (request_side == LODSquareSide::RIGHT) {
                 auto val = create_sub_lod(false, false);
                 val->set_neighbor(LODSquareSide::DOWN, requester);
                 return val;
@@ -565,23 +556,19 @@ namespace HiveEngine {
             if (p_up() && p_left()) return LODSquareSide::RIGHT;
             else if (!p_up() && p_left()) return LODSquareSide::LEFT;
             else return LODSquareSide::NONE;
-        }
-        else if (which == LODSquareSide::RIGHT) {
+        } else if (which == LODSquareSide::RIGHT) {
             if (p_up() && !p_left()) return LODSquareSide::LEFT;
             else if (!p_up() && !p_left()) return LODSquareSide::RIGHT;
             else return LODSquareSide::NONE;
-        }
-        else if (which == LODSquareSide::UP) {
+        } else if (which == LODSquareSide::UP) {
             if (p_up() && p_left()) return LODSquareSide::LEFT;
             else if (p_up() && !p_left()) return LODSquareSide::RIGHT;
             else return LODSquareSide::NONE;
-        }
-        else if (which == LODSquareSide::DOWN) {
+        } else if (which == LODSquareSide::DOWN) {
             if (!p_up() && !p_left()) return LODSquareSide::LEFT;
             else if (!p_up() && p_left()) return LODSquareSide::RIGHT;
             else return LODSquareSide::NONE;
-        }
-        else {
+        } else {
             return LODSquareSide::NONE;
         }
 
@@ -623,10 +610,9 @@ namespace HiveEngine {
         parent = nullptr;
     }
 
-    bool __LODSquareState::operator==(const __LODSquareState & rhs)
-    {
+    bool __LODSquareState::operator==(const __LODSquareState &rhs) {
         return
-                un==rhs.un &&
+                un == rhs.un &&
                 dn == rhs.dn &&
                 ln == rhs.ln &&
                 rn == rhs.rn &&

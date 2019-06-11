@@ -2,8 +2,8 @@
 // Created by calper on 5/11/19.
 //
 
-#ifndef HIVEENGINE_IMAGEDRAWING_H
-#define HIVEENGINE_IMAGEDRAWING_H
+#ifndef HIVEENGINE_GLYPHDRAWING_H
+#define HIVEENGINE_GLYPHDRAWING_H
 
 #include <HiveEngine/Renderer/Drawing.h>
 #include <HiveEngine/Buffer.hpp>
@@ -29,6 +29,10 @@ namespace HiveEngineRenderer {
         int texture_index = -1;
     };
 
+    struct ImageColorDescription {
+        glm::vec4 color = {1.0, 0.0, 1.0, 1.0};
+    };
+
     struct ImageDescription {
         size_t orientation;
         size_t itdesc1;
@@ -37,16 +41,20 @@ namespace HiveEngineRenderer {
 
     ImageOrientation create_aligned_image_orientation(glm::vec3 position, float width, float height);
 
-    class ImageDrawing : public Drawing {
+    class GlyphDrawing : public Drawing {
     public:
         HiveEngine::Buffer<ImageOrientation> imos; // Orientations
         HiveEngine::Buffer<ImageTriangleDescription> imtds; // Descriptions
+        HiveEngine::Buffer<ImageColorDescription> icds; // Descriptions
 
         VmaAllocation orientation_allocation = nullptr;
         VkBuffer orientation_buffer = nullptr;
 
         VmaAllocation description_allocation = nullptr;
         VkBuffer description_buffer = nullptr;
+
+        VmaAllocation color_allocation = nullptr;
+        VkBuffer color_buffer = nullptr;
 
         VkPipeline graphicsPipeline;
         VkPipelineLayout pipelineLayout;
@@ -64,9 +72,9 @@ namespace HiveEngineRenderer {
 
         bool image_pushed = false;
 
-        ImageDrawing(Directive *directive, HiveEngine::Texture texture);
+        GlyphDrawing(Directive *directive, HiveEngine::Texture texture);
 
-        ~ImageDrawing();
+        ~GlyphDrawing();
 
         void init(VkRenderPass render_pass) override;
 
@@ -76,10 +84,12 @@ namespace HiveEngineRenderer {
 
         void cleanup() override;
 
-        ImageDescription add_image(glm::vec3 position, float width, float height);
+        ImageDescription add_image(glm::vec3 position, float width, float height, glm::vec4 color);
+
+        ImageDescription add_image_lower_left(glm::vec3 position, float width, float height, glm::vec4 color);
 
         void remove_image(ImageDescription id);
     };
 }
 
-#endif //HIVEENGINE_IMAGEDRAWING_H
+#endif //HIVEENGINE_GLYPHDRAWING_H

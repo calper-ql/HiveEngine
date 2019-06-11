@@ -36,9 +36,9 @@ namespace HiveEngine {
     }
 
     bool AABB::collides(AABB other) {
-        if(max.x < other.min.x || min.x > other.max.x) return false;
-        if(max.y < other.min.y || min.y > other.max.y) return false;
-        if(max.z < other.min.z || min.z > other.max.z) return false;
+        if (max.x < other.min.x || min.x > other.max.x) return false;
+        if (max.y < other.min.y || min.y > other.max.y) return false;
+        if (max.z < other.min.z || min.z > other.max.z) return false;
         return true;
     }
 }

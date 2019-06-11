@@ -4,7 +4,7 @@
 // Created by calper on 5/11/19.
 //
 
-#include <HiveEngine/Renderer/ImageDrawing.h>
+#include <HiveEngine/Renderer/GlyphDrawing.h>
 
 namespace HiveEngineRenderer {
 
@@ -37,13 +37,13 @@ namespace HiveEngineRenderer {
         return io;
     }
 
-    ImageDrawing::ImageDrawing(Directive *directive, HiveEngine::Texture texture) : Drawing(directive) {
+    GlyphDrawing::GlyphDrawing(Directive *directive, HiveEngine::Texture texture) : Drawing(directive) {
         this->texture = texture;
 
 
     }
 
-    void ImageDrawing::init(VkRenderPass render_pass) {
+    void GlyphDrawing::init(VkRenderPass render_pass) {
         Drawing::init(render_pass);
 
         VkImageCreateInfo imageInfo = {};
@@ -60,6 +60,12 @@ namespace HiveEngineRenderer {
         imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
         imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
         imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+        if(texture.channel == 3){
+            imageInfo.format = VK_FORMAT_R8G8B8_UNORM;
+        } else if(texture.channel == 1){
+            imageInfo.format = VK_FORMAT_R8_UNORM;
+        }
 
         VmaAllocationCreateInfo textureCreateInfo = {};
         textureCreateInfo.usage = VMA_MEMORY_USAGE_UNKNOWN;
@@ -85,11 +91,13 @@ namespace HiveEngineRenderer {
         attributeDescriptions[1].format = VK_FORMAT_R32G32_SFLOAT;
         attributeDescriptions[1].offset = offsetof(ImageOrientation, f0uv);
 
-        std::array<VkDescriptorPoolSize, 2> poolSizes = {};
+        std::array<VkDescriptorPoolSize, 3> poolSizes = {};
         poolSizes[0].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
         poolSizes[0].descriptorCount = 1;
         poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         poolSizes[1].descriptorCount = 1;
+        poolSizes[2].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        poolSizes[2].descriptorCount = 1;
 
         VkDescriptorPoolCreateInfo poolInfo = {};
         poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -102,7 +110,7 @@ namespace HiveEngineRenderer {
             throw std::runtime_error("failed to create descriptor pool!");
         }
 
-        std::array<VkDescriptorSetLayoutBinding, 2> bindings = {};
+        std::array<VkDescriptorSetLayoutBinding, 3> bindings = {};
 
         bindings[0].binding = 1;
         bindings[0].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
@@ -115,6 +123,12 @@ namespace HiveEngineRenderer {
         bindings[1].descriptorCount = 1;
         bindings[1].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
         bindings[1].pImmutableSamplers = nullptr;
+
+        bindings[2].binding = 3;
+        bindings[2].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        bindings[2].descriptorCount = 1;
+        bindings[2].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+        bindings[2].pImmutableSamplers = nullptr;
 
         VkDescriptorSetLayoutCreateInfo layoutInfo = {};
         layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -139,13 +153,13 @@ namespace HiveEngineRenderer {
         VkPipelineShaderStageCreateInfo vertShaderStageInfo = {};
         vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
         vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
-        vertShaderStageInfo.module = get_context()->get_shaders()["image_shader.vert"];
+        vertShaderStageInfo.module = get_context()->get_shaders()["glyph_shader.vert"];
         vertShaderStageInfo.pName = "main";
 
         VkPipelineShaderStageCreateInfo fragShaderStageInfo = {};
         fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
         fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-        fragShaderStageInfo.module = get_context()->get_shaders()["image_shader.frag"];
+        fragShaderStageInfo.module = get_context()->get_shaders()["glyph_shader.frag"];
         fragShaderStageInfo.pName = "main";
 
         VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
@@ -246,7 +260,7 @@ namespace HiveEngineRenderer {
 
     }
 
-    void ImageDrawing::update() {
+    void GlyphDrawing::update() {
         if (imos.is_changed() || orientation_buffer == nullptr) {
             vmaDestroyBuffer(get_context()->get_allocator(), orientation_buffer, orientation_allocation);
             orientation_buffer = nullptr;
@@ -277,13 +291,18 @@ namespace HiveEngineRenderer {
             description_buffer = nullptr;
             description_allocation = nullptr;
 
+            vmaDestroyBuffer(get_context()->get_allocator(), color_buffer, color_allocation);
+            color_buffer = nullptr;
+            color_allocation = nullptr;
+
             auto decriptors = imtds.get_data();
 
             VkBufferCreateInfo bufferInfo = {VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
+            VmaAllocationCreateInfo allocInfo = {};
+
+
             bufferInfo.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
             bufferInfo.size = sizeof(ImageTriangleDescription) * decriptors.size();
-
-            VmaAllocationCreateInfo allocInfo = {};
             allocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
             vmaCreateBuffer(get_context()->get_allocator(), &bufferInfo, &allocInfo, &description_buffer,
                             &description_allocation, nullptr);
@@ -293,6 +312,21 @@ namespace HiveEngineRenderer {
                 vmaMapMemory(get_context()->get_allocator(), description_allocation, &data);
                 memcpy(data, decriptors.data(), sizeof(ImageTriangleDescription) * decriptors.size());
                 vmaUnmapMemory(get_context()->get_allocator(), description_allocation);
+            }
+
+            auto colors = icds.get_data();
+
+            bufferInfo.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+            bufferInfo.size = sizeof(ImageColorDescription) * colors.size();
+            allocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
+            vmaCreateBuffer(get_context()->get_allocator(), &bufferInfo, &allocInfo, &color_buffer,
+                            &color_allocation, nullptr);
+
+            if (!colors.empty()) {
+                void *data;
+                vmaMapMemory(get_context()->get_allocator(), color_allocation, &data);
+                memcpy(data, colors.data(), sizeof(ImageColorDescription) * colors.size());
+                vmaUnmapMemory(get_context()->get_allocator(), color_allocation);
             }
 
             VkDescriptorBufferInfo stateStorageBufferInfo = {};
@@ -311,6 +345,22 @@ namespace HiveEngineRenderer {
             stateStorageWrite.pImageInfo = nullptr;
             stateStorageWrite.pTexelBufferView = nullptr;
 
+            VkDescriptorBufferInfo colorStorageBufferInfo = {};
+            colorStorageBufferInfo.buffer = color_buffer;
+            colorStorageBufferInfo.offset = 0;
+            colorStorageBufferInfo.range = VK_WHOLE_SIZE;
+
+            VkWriteDescriptorSet colorStorageWrite = {};
+            colorStorageWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            colorStorageWrite.dstSet = descriptorSet;
+            colorStorageWrite.dstBinding = 3;
+            colorStorageWrite.dstArrayElement = 0;
+            colorStorageWrite.descriptorCount = 1;
+            colorStorageWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+            colorStorageWrite.pBufferInfo = &colorStorageBufferInfo;
+            colorStorageWrite.pImageInfo = nullptr;
+            colorStorageWrite.pTexelBufferView = nullptr;
+
             VkDescriptorImageInfo imageInfo = {};
             imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
             imageInfo.imageView = imageView;
@@ -325,7 +375,7 @@ namespace HiveEngineRenderer {
             imageWrite.descriptorCount = 1;
             imageWrite.pImageInfo = &imageInfo;
 
-            std::array<VkWriteDescriptorSet, 2> write_descriptors = {stateStorageWrite, imageWrite};
+            std::array<VkWriteDescriptorSet, 3> write_descriptors = {stateStorageWrite, imageWrite, colorStorageWrite};
 
             vkUpdateDescriptorSets(get_context()->get_device(), write_descriptors.size(), write_descriptors.data(), 0,
                                    nullptr);
@@ -334,15 +384,18 @@ namespace HiveEngineRenderer {
 
     }
 
-    void ImageDrawing::draw(VkCommandBuffer cmd_buffer) {
+    void GlyphDrawing::draw(VkCommandBuffer cmd_buffer) {
         Drawing::draw(cmd_buffer);
         if (imos.size() > 0) {
             if (!image_pushed) {
                 image_pushed = true;
 
-                get_context()->transition_image_layout(textureImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+                get_context()->transition_image_layout(textureImage, VK_FORMAT_R8G8B8A8_UNORM,
+                                                       VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
                 get_context()->copy_texture_to_image(texture, textureImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-                get_context()->transition_image_layout(textureImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+                get_context()->transition_image_layout(textureImage, VK_FORMAT_R8G8B8A8_UNORM,
+                                                       VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                                                       VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
                 VkImageViewCreateInfo viewInfo = {};
                 viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -354,6 +407,13 @@ namespace HiveEngineRenderer {
                 viewInfo.subresourceRange.levelCount = 1;
                 viewInfo.subresourceRange.baseArrayLayer = 0;
                 viewInfo.subresourceRange.layerCount = 1;
+
+                if(texture.channel == 3){
+                    viewInfo.format = VK_FORMAT_R8G8B8_UNORM;
+                } else if(texture.channel == 1){
+                    viewInfo.format = VK_FORMAT_R8_UNORM;
+                }
+
 
                 if (vkCreateImageView(get_context()->get_device(), &viewInfo, nullptr, &imageView) != VK_SUCCESS) {
                     throw std::runtime_error("failed to create texture image view!");
@@ -374,7 +434,8 @@ namespace HiveEngineRenderer {
                 samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
                 samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 
-                if (vkCreateSampler(get_context()->get_device(), &samplerInfo, nullptr, &textureSampler) != VK_SUCCESS) {
+                if (vkCreateSampler(get_context()->get_device(), &samplerInfo, nullptr, &textureSampler) !=
+                    VK_SUCCESS) {
                     throw std::runtime_error("failed to create texture sampler!");
                 }
             }
@@ -393,12 +454,10 @@ namespace HiveEngineRenderer {
         }
     }
 
-    void ImageDrawing::cleanup() {
+    void GlyphDrawing::cleanup() {
         Drawing::cleanup();
 
-        if(image_pushed){
-            //get_context()->transition_image_layout(textureImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-
+        if (image_pushed) {
             vkDestroyImageView(get_context()->get_device(), imageView, nullptr);
             vkDestroySampler(get_context()->get_device(), textureSampler, nullptr);
             image_pushed = false;
@@ -414,6 +473,10 @@ namespace HiveEngineRenderer {
         description_buffer = nullptr;
         description_allocation = nullptr;
 
+        vmaDestroyBuffer(get_context()->get_allocator(), color_buffer, color_allocation);
+        color_buffer = nullptr;
+        color_allocation = nullptr;
+
         vkDestroyDescriptorSetLayout(get_context()->get_device(), descriptorSetLayout, nullptr);
         vkDestroyDescriptorPool(get_context()->get_device(), descriptorPool, nullptr);
 
@@ -421,34 +484,79 @@ namespace HiveEngineRenderer {
         vkDestroyPipelineLayout(get_context()->get_device(), pipelineLayout, nullptr);
     }
 
-    ImageDescription ImageDrawing::add_image(glm::vec3 position, float width, float height) {
+    ImageDescription GlyphDrawing::add_image(glm::vec3 position, float width, float height, glm::vec4 color) {
         ImageDescription id;
+
         ImageTriangleDescription itd;
         itd.texture_index = 0;
 
+        ImageColorDescription icd;
+        icd.color = color;
+
         id.orientation = imos.add(create_aligned_image_orientation(position, width, height));
-        id.itdesc1 = imtds.add(itd);
-        id.itdesc2 = imtds.add(itd);
+        id.itdesc1 = imtds.add(itd); icds.add(icd);
+        id.itdesc2 = imtds.add(itd); icds.add(icd);
 
         return id;
     }
 
-    void ImageDrawing::remove_image(ImageDescription id) {
+    void GlyphDrawing::remove_image(ImageDescription id) {
         imos.remove(id.orientation);
         ImageTriangleDescription itd;
         itd.texture_index = -1;
 
         imtds.set(id.itdesc1, itd);
         imtds.set(id.itdesc2, itd);
-        imtds.remove(id.itdesc1);
-        imtds.remove(id.itdesc2);
+        imtds.remove(id.itdesc1); icds.remove(id.itdesc1);
+        imtds.remove(id.itdesc2); icds.remove(id.itdesc2);
         imos.remove(id.orientation);
     }
 
-    ImageDrawing::~ImageDrawing() {
+    GlyphDrawing::~GlyphDrawing() {
 
     }
 
+    ImageDescription
+    GlyphDrawing::add_image_lower_left(glm::vec3 position, float width, float height, glm::vec4 color) {
+        ImageDescription id;
+
+        ImageTriangleDescription itd;
+        itd.texture_index = 0;
+
+        ImageColorDescription icd;
+        icd.color = color;
+
+        ImageOrientation io = {};
+
+        float left = position.x;
+        float right = position.x + width;
+        float up = position.y + height;
+        float down = position.y;
+
+        io.f0 = {left, up, position.z};
+        io.f0uv = {0.0f, 1.0f};
+
+        io.f1 = {right, up, position.z};
+        io.f1uv = {1.0f, 1.0f};
+
+        io.f2 = {right, down, position.z};
+        io.f2uv = {1.0f, 0.0f};
+
+        io.f3 = {right, down, position.z};
+        io.f3uv = {1.0f, 0.0f};
+
+        io.f4 = {left, down, position.z};
+        io.f4uv = {0.0f, 0.0f};
+
+        io.f5 = {left, up, position.z};
+        io.f5uv = {0.0f, 1.0f};
+
+        id.orientation = imos.add(io);
+        id.itdesc1 = imtds.add(itd); icds.add(icd);
+        id.itdesc2 = imtds.add(itd); icds.add(icd);
+
+        return id;
+    }
 
 
 }

@@ -13,13 +13,15 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #define GLFW_INCLUDE_VULKAN
+
 #include <GLFW/glfw3.h>
 
 namespace HiveEngineRenderer {
-    float get_window_ratio(GLFWwindow* window);
+    float get_window_ratio(GLFWwindow *window);
 
     struct CameraPackage {
         glm::mat4 view;
+        int apply = 1;
     };
 
     class Camera {

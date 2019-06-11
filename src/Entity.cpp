@@ -16,7 +16,7 @@ namespace HiveEngine {
         this->velocity = glm::dvec3(0.0, 0.0, 0.0);
         this->rotation_matrix = glm::dmat3(1.0);
         this->total_torque_counter = glm::dvec3(0.0, 0.0, 0.0);
-        this->moment_of_inertia = glm::dmat3(2.0f/5.0f * mass * radius * radius);
+        this->moment_of_inertia = glm::dmat3(2.0f / 5.0f * mass * radius * radius);
         this->calculated_moment_of_inertia = this->moment_of_inertia;
         this->torque_resistance = glm::dvec3(1.0f, 1.0f, 1.0f);
         angular_velocity = glm::quat(glm::dvec3(0.0, 0.0, 0.0));
@@ -39,7 +39,7 @@ namespace HiveEngine {
     }
 
     const glm::dvec3 &Entity::get_velocity() const {
-        if(parent) return parent->get_velocity();
+        if (parent) return parent->get_velocity();
         return velocity;
     }
 
@@ -94,12 +94,12 @@ namespace HiveEngine {
     /* ========= FUNCTIONS =========  */
 
     EntityStepOutput Entity::step(unsigned steps_per_second) {
-        double deamplify_ratio = 1.0f / (double)steps_per_second;
+        double deamplify_ratio = 1.0f / (double) steps_per_second;
         EntityStepOutput eso;
         eso.moment_of_inertia = moment_of_inertia;
         eso.mass = mass;
         CentralMass mc;
-        if(parent == nullptr) {
+        if (parent == nullptr) {
             mc = calculate_central_mass();
         }
 
@@ -107,31 +107,31 @@ namespace HiveEngine {
             child->step(steps_per_second);
         }
 
-        if(parent == nullptr) {
+        if (parent == nullptr) {
             eso.moment_of_inertia = mc.moment_of_inertia;
         }
 
-        for(auto f: this->applied_forces){
+        for (auto f: this->applied_forces) {
             glm::dvec3 force_vector = f.force;
             glm::dvec3 leverage = f.leverage;
-            if(parent == nullptr) {
-                if(f.is_relative) leverage += -mc.position*rotation_matrix;
+            if (parent == nullptr) {
+                if (f.is_relative) leverage += -mc.position * rotation_matrix;
                 else leverage += -mc.position;
             }
 
-            if(!f.is_relative) leverage = leverage / rotation_matrix;
+            if (!f.is_relative) leverage = leverage / rotation_matrix;
             glm::dvec3 torque_vector = glm::cross(leverage, force_vector);
-            if(f.is_relative) force_vector = rotation_matrix * force_vector;
+            if (f.is_relative) force_vector = rotation_matrix * force_vector;
 
-            if(f.is_relative){
-                if(parent) parent->apply_force(position + leverage, force_vector, true);
+            if (f.is_relative) {
+                if (parent) parent->apply_force(position + leverage, force_vector, true);
             } else {
-                if(parent) parent->apply_force(parent->rotation_matrix * position, force_vector, false);
+                if (parent) parent->apply_force(parent->rotation_matrix * position, force_vector, false);
             }
 
             eso.force += force_vector;
 
-            if(parent) eso.torque += torque_vector * glm::abs(torque_resistance - 1.0) * deamplify_ratio;
+            if (parent) eso.torque += torque_vector * glm::abs(torque_resistance - 1.0) * deamplify_ratio;
             else eso.torque += torque_vector * deamplify_ratio;
         }
 
@@ -144,8 +144,8 @@ namespace HiveEngine {
         angular_velocity *= glm::angleAxis(total_w[1], glm::dvec3(0.0, 1.0, 0.0) * angular_velocity);
         angular_velocity *= glm::angleAxis(total_w[2], glm::dvec3(0.0, 0.0, 1.0) * angular_velocity);
 
-        rotation_matrix = rotation_matrix *  glm::mat3_cast(angular_velocity);
-        if(parent == nullptr) {
+        rotation_matrix = rotation_matrix * glm::mat3_cast(angular_velocity);
+        if (parent == nullptr) {
             velocity += (eso.force / mc.mass);
             auto mcp = mc.position;
             auto shift = (angular_velocity * (-mcp)) + mcp;
@@ -172,38 +172,38 @@ namespace HiveEngine {
     }
 
     glm::dmat3 Entity::calculate_rotation_matrix() {
-        if(parent == nullptr) return rotation_matrix;
+        if (parent == nullptr) return rotation_matrix;
         return parent->calculate_rotation_matrix() * rotation_matrix;
     }
 
     glm::dvec3 Entity::calculate_throw_vector(glm::dvec3 relative_point, bool parent_supported) {
-        if(parent && parent_supported){
+        if (parent && parent_supported) {
             return parent->calculate_throw_vector(position, true)
                    + calculate_rotation_matrix()
-                     * glm::cross(total_torque_counter/calculated_moment_of_inertia, relative_point);
+                     * glm::cross(total_torque_counter / calculated_moment_of_inertia, relative_point);
         }
-        return glm::cross(total_torque_counter/calculated_moment_of_inertia, relative_point);
+        return glm::cross(total_torque_counter / calculated_moment_of_inertia, relative_point);
     }
 
     glm::dvec3 Entity::calculate_relative_position() {
-        if(parent == nullptr) return glm::dvec3(0.0f, 0.0f, 0.0f);
+        if (parent == nullptr) return glm::dvec3(0.0f, 0.0f, 0.0f);
         return parent->calculate_relative_position() + parent->calculate_rotation_matrix() * position;
     }
 
 
     glm::dvec3 Entity::calculate_position() {
-        if(parent == nullptr){
+        if (parent == nullptr) {
             return position;
         }
         return parent->calculate_position() + parent->calculate_rotation_matrix() * position;
     }
 
     void Entity::apply_force(glm::dvec3 leverage, glm::dvec3 force, bool is_relative) {
-        if(glm::length(force) > 0.0) applied_forces.emplace_back(leverage, force, is_relative);
+        if (glm::length(force) > 0.0) applied_forces.emplace_back(leverage, force, is_relative);
     }
 
     void Entity::get_all_children(std::vector<Entity *> *list) {
-        for (Entity* item : children) {
+        for (Entity *item : children) {
             list->push_back(item);
             item->get_all_children(list);
         }
@@ -211,23 +211,23 @@ namespace HiveEngine {
 
     CentralMass Entity::calculate_central_mass() {
         CentralMass cm;
-        std::vector<Entity*> list;
+        std::vector<Entity *> list;
         get_all_children(&list);
         cm.mass = mass;
         cm.moment_of_inertia = moment_of_inertia;
 
-        for(auto c: list){
-            if(c) {
+        for (auto c: list) {
+            if (c) {
                 auto pos = c->calculate_relative_position(this);
                 cm.position += pos * c->mass;
                 cm.mass += c->mass;
             }
         }
 
-        for(auto c: list){
-            if(c) {
+        for (auto c: list) {
+            if (c) {
                 auto pos = c->calculate_relative_position(this) - cm.position;
-                pos = pos ;
+                pos = pos;
                 glm::dmat3 tens = glm::dmat3(0.0);
                 auto x2 = pos.x * pos.x;
                 auto y2 = pos.y * pos.y;
@@ -237,13 +237,13 @@ namespace HiveEngine {
                 tens[1][1] = c->mass * (x2 + z2);
                 tens[2][2] = c->mass * (x2 + y2);
 
-                tens[0][1] = - c->mass * (pos.x*pos.y);
+                tens[0][1] = -c->mass * (pos.x * pos.y);
                 tens[1][0] = tens[0][1];
 
-                tens[0][2] = - c->mass * (pos.x*pos.z);
+                tens[0][2] = -c->mass * (pos.x * pos.z);
                 tens[2][0] = tens[0][2];
 
-                tens[1][2] = - c->mass * (pos.y*pos.z);
+                tens[1][2] = -c->mass * (pos.y * pos.z);
                 tens[2][1] = tens[1][2];
 
                 cm.moment_of_inertia += (tens + c->moment_of_inertia);
@@ -272,12 +272,12 @@ namespace HiveEngine {
         total_torque_counter = t;
     }
 
-    glm::dvec3 Entity::calculate_relative_position(Entity* from) {
-        if(parent == nullptr) return glm::dvec3(0.0f, 0.0f, 0.0f);
-        if(this == from) return glm::dvec3(0.0f, 0.0f, 0.0f);
+    glm::dvec3 Entity::calculate_relative_position(Entity *from) {
+        if (parent == nullptr) return glm::dvec3(0.0f, 0.0f, 0.0f);
+        if (this == from) return glm::dvec3(0.0f, 0.0f, 0.0f);
         else {
             auto rmat = glm::dmat3(1.0f);
-            if(parent->parent) rmat = parent->rotation_matrix;
+            if (parent->parent) rmat = parent->rotation_matrix;
             auto val = parent->calculate_relative_position(from) + rmat * position;
             return val;
         }

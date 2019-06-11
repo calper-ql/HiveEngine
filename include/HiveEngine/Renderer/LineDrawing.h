@@ -35,9 +35,9 @@ namespace HiveEngineRenderer {
 
         float line_width = 1;
 
-        Camera* camera;
+        Camera *camera;
 
-        LineDrawing(Directive *directive, Camera* camera);
+        LineDrawing(Directive *directive, Camera *camera);
 
         void init(VkRenderPass render_pass) override;
 

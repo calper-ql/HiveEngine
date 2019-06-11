@@ -11,7 +11,7 @@ namespace HiveEngineRenderer {
         int height;
         glfwGetWindowSize(window, &width, &height);
 
-        return width/(float)height;
+        return width / (float) height;
     }
 
     HiveEngineRenderer::Camera::Camera() {
@@ -31,7 +31,7 @@ namespace HiveEngineRenderer {
 
     void Camera::rotate(float angle, float x, float y, float z) {
         glm::quat a = orientation;
-        auto b = glm::angleAxis(angle*1.0f, glm::vec3(x, y, z) * a);
+        auto b = glm::angleAxis(angle * 1.0f, glm::vec3(x, y, z) * a);
         orientation = a * b;
     }
 
@@ -84,22 +84,22 @@ namespace HiveEngineRenderer {
             roll(1.0 / rotate_modifier);
         }
 
-        if(glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS){
+        if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
             double x, y;
             glfwGetCursorPos(window, &x, &y);
-            if(m_press == 0){
+            if (m_press == 0) {
                 m_press++;
                 glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
             } else {
                 double dx = x - last_m_pos.x;
                 double dy = y - last_m_pos.y;
-                pitch(-dy/rotate_modifier);
-                yaw(dx/rotate_modifier);
+                pitch(-dy / rotate_modifier);
+                yaw(dx / rotate_modifier);
             }
             last_m_pos.x = x;
             last_m_pos.y = y;
         }
-        if(glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE){
+        if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE) {
             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
             m_press = 0;
         }

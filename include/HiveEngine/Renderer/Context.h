@@ -8,6 +8,7 @@
 #include <vulkan/vulkan.hpp>
 
 #define GLFW_INCLUDE_VULKAN
+
 #include <GLFW/glfw3.h>
 
 #include <iostream>
@@ -48,40 +49,51 @@ namespace HiveEngineRenderer {
     public:
 
         // VK_LAYER_LUNARG_standard_validation
-        std::vector<const char*> validation_layers = {"VK_LAYER_LUNARG_standard_validation"};
-        const std::vector<const char*> deviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
+        std::vector<const char *> validation_layers = {"VK_LAYER_LUNARG_standard_validation"};
+        const std::vector<const char *> deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 
-        void register_directive(Directive* directive);
+        void register_directive(Directive *directive);
+
         VkFormat get_image_format();
+
         VkDevice get_device();
+
         std::map<std::string, VkShaderModule> get_shaders();
+
         VkExtent2D get_swap_chain_extent();
+
         std::vector<VkImageView> get_swap_chain_image_views();
 
         size_t get_swap_chain_size();
 
         VkCommandPool get_command_pool();
+
         VmaAllocator get_allocator();
 
         void mark_resized();
 
-        GLFWwindow* get_window();
+        GLFWwindow *get_window();
 
         void wait_device();
 
         void init_window();
+
         void init_vulkan();
+
         void main_loop();
+
         void cleanup();
 
         void copy_texture_to_image(HiveEngine::Texture texture, VkImage image, VkImageLayout layout);
+
         void transition_image_layout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
 
         VkCommandBuffer begin_instant_command();
+
         void end_instant_command(VkCommandBuffer cmd);
 
     private:
-        GLFWwindow* window;
+        GLFWwindow *window;
 
         VkInstance instance;
         VkDebugUtilsMessengerEXT debug_messenger;
@@ -104,7 +116,7 @@ namespace HiveEngineRenderer {
 
         std::map<std::string, VkShaderModule> shaders;
 
-        std::vector<Directive*> directives;
+        std::vector<Directive *> directives;
         VkCommandPool command_pool;
 
         uint8_t inflight_frame_count = 2;
@@ -119,22 +131,37 @@ namespace HiveEngineRenderer {
         bool inited = false;
 
         void create_instance();
+
         bool check_validation_layer_support();
+
         void setup_debug_messenger();
+
         void pick_physical_device();
+
         void create_logical_device();
+
         void create_surface();
+
         void create_swap_chain();
+
         void create_image_views();
+
         void create_allocator();
+
         void load_shaders();
+
         void init_directives_frame_buffer();
+
         void create_command_pool();
+
         void init_directives_command_buffer();
+
         void create_sync_objects();
 
         void draw_frame();
+
         void recreate_swap_chain();
+
         void cleanup_swap_chain();
     };
 }

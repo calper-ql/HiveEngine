@@ -11,14 +11,18 @@ namespace HiveEngine {
     class RadialGenerator {
     public:
         double radius;
+
         explicit RadialGenerator(double radius);
+
         virtual glm::dvec3 generate_vertex(glm::dvec3 v);
+
         virtual glm::dvec3 generate_normal(glm::dvec3 v);
+
         virtual glm::dvec2 generate_uv(glm::dvec3 v);
+
         virtual glm::dvec4 generate_color(glm::dvec3 v);
     };
 }
-
 
 
 #endif //HIVEENGINE_RADIALGENERATOR_H

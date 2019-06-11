@@ -11,7 +11,7 @@
 
 namespace HiveEngine {
     struct Texture {
-        std::vector <uint8_t> data;
+        std::vector<uint8_t> data;
         int width, height, channel;
     };
 

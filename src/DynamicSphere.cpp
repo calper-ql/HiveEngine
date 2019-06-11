@@ -5,7 +5,7 @@
 #include <HiveEngine/DynamicSphere.h>
 
 namespace HiveEngine {
-    void  DynamicSphere::__dslod_div(LODSquare *temp, unsigned depth) {
+    void DynamicSphere::__dslod_div(LODSquare *temp, unsigned depth) {
         if (temp) {
             if (temp->depth < depth) {
                 temp->create_sub_lod(true, true);
@@ -102,7 +102,7 @@ namespace HiveEngine {
             __dslod_div(n, depth);
         }
         for (auto t: squares) {
-            if(t){
+            if (t) {
                 t->populate_indices();
             }
         }
@@ -129,8 +129,7 @@ namespace HiveEngine {
             if (k2 * fork_max > p2.a) { if (temp->depth > min_depth) temp->erase_sub_load(true, false, 1); }
             if (k3 * fork_max > p3.a) { if (temp->depth > min_depth) temp->erase_sub_load(false, true, 1); }
             if (k4 * fork_max > p4.a) { if (temp->depth > min_depth) temp->erase_sub_load(false, false, 1); }
-        }
-        else {
+        } else {
             if (k1 * fork_min < p1.a) { if (temp->depth < max_depth) temp->create_sub_lod(true, true); }
             if (k2 * fork_min < p2.a) { if (temp->depth < max_depth) temp->create_sub_lod(true, false); }
             if (k3 * fork_min < p3.a) { if (temp->depth < max_depth) temp->create_sub_lod(false, true); }
@@ -151,7 +150,7 @@ namespace HiveEngine {
             __dslod_dyna_chk(t, relative_point, fork_min, fork_max);
         }
         for (auto t: squares) {
-            if(t){
+            if (t) {
                 t->populate_indices();
             }
         }
@@ -159,50 +158,51 @@ namespace HiveEngine {
         return creation_count + deletion_count;
     }
 
-    void __dslod_calculate_kernel(std::vector<glm::vec3> &vertices, unsigned size, unsigned lod, unsigned x, unsigned y){
+    void
+    __dslod_calculate_kernel(std::vector<glm::vec3> &vertices, unsigned size, unsigned lod, unsigned x, unsigned y) {
         unsigned lc = x;
-        unsigned rc = x+lod+1;
+        unsigned rc = x + lod + 1;
 
         unsigned uc = y;
-        unsigned dc = y+lod+1;
+        unsigned dc = y + lod + 1;
 
-        auto lu = vertices[(uc)*size+lc];
-        auto ru = vertices[(uc)*size+rc];
-        auto ld = vertices[(dc)*size+lc];
-        auto rd = vertices[(dc)*size+rc];
+        auto lu = vertices[(uc) * size + lc];
+        auto ru = vertices[(uc) * size + rc];
+        auto ld = vertices[(dc) * size + lc];
+        auto rd = vertices[(dc) * size + rc];
 
-        float itr1 = glm::distance(lu, ld)/(lod+1);
-        float itr2 = glm::distance(ru, rd)/(lod+1);
+        float itr1 = glm::distance(lu, ld) / (lod + 1);
+        float itr2 = glm::distance(ru, rd) / (lod + 1);
 
-        glm::vec3 dir1 = glm::normalize(ld-lu);
-        glm::vec3 dir2 = glm::normalize(rd-ru);
+        glm::vec3 dir1 = glm::normalize(ld - lu);
+        glm::vec3 dir2 = glm::normalize(rd - ru);
 
         glm::vec3 lside = lu;
         glm::vec3 rside = ru;
 
-        for(unsigned i = uc; i < dc+1; i++){
+        for (unsigned i = uc; i < dc + 1; i++) {
 
-            float itr3 = glm::distance(lside, rside)/(lod+2);
-            glm::vec3 dir3 = glm::normalize(rside-lside);
+            float itr3 = glm::distance(lside, rside) / (lod + 2);
+            glm::vec3 dir3 = glm::normalize(rside - lside);
             glm::vec3 tside = lside;
 
-            for(unsigned j = lc; j < rc+1; j++){
-                vertices[i*size+j] = tside;
-                tside += dir3*itr3;
+            for (unsigned j = lc; j < rc + 1; j++) {
+                vertices[i * size + j] = tside;
+                tside += dir3 * itr3;
             }
 
-            lside += dir1*itr1;
-            rside += dir2*itr2;
+            lside += dir1 * itr1;
+            rside += dir2 * itr2;
         }
     }
 
-    Texture* DynamicSphere::__generate_texture(std::vector<glm::vec3> vertices, unsigned size, unsigned desired_lod,
-                                                  LODSquare *lods) {
-        Texture* t = new Texture();
+    Texture *DynamicSphere::__generate_texture(std::vector<glm::vec3> vertices, unsigned size, unsigned desired_lod,
+                                               LODSquare *lods) {
+        Texture *t = new Texture();
 
-        auto lod = desired_lod>0?desired_lod:1;
-        t->width = (size-1)*lod + size;
-        t->height = (size-1)*lod + size;
+        auto lod = desired_lod > 0 ? desired_lod : 1;
+        t->width = (size - 1) * lod + size;
+        t->height = (size - 1) * lod + size;
         t->channel = 4;
         t->data.resize(t->width * t->height * t->channel);
 
@@ -211,22 +211,23 @@ namespace HiveEngine {
 
         for (unsigned i = 0; i < size; ++i) {
             for (unsigned j = 0; j < size; ++j) {
-                glm::vec3 pos = vertices[i*size+j];
-                generated_vertices[(i*(lod+1))*t->width+(j*(lod+1))] = pos;
+                glm::vec3 pos = vertices[i * size + j];
+                generated_vertices[(i * (lod + 1)) * t->width + (j * (lod + 1))] = pos;
             }
         }
 
-        for (unsigned i = 0; i < size-1; i+=1) {
-            for (unsigned j = 0; j < size-1; j+=1) {
-                __dslod_calculate_kernel(generated_vertices, t->width, lod, j*(lod+1), i*(lod+1));
+        for (unsigned i = 0; i < size - 1; i += 1) {
+            for (unsigned j = 0; j < size - 1; j += 1) {
+                __dslod_calculate_kernel(generated_vertices, t->width, lod, j * (lod + 1), i * (lod + 1));
             }
         }
 
         auto dat = t->data.data();
         for (unsigned i = 0; i < t->height; ++i) {
             for (unsigned j = 0; j < t->width; ++j) {
-                generated_vertices[i*t->width+j] = glm::vec3(pgn->generate_vertex(generated_vertices[i*t->width+j]));
-                auto c = pgn->generate_color(generated_vertices[i*t->width+j]);
+                generated_vertices[i * t->width + j] = glm::vec3(
+                        pgn->generate_vertex(generated_vertices[i * t->width + j]));
+                auto c = pgn->generate_color(generated_vertices[i * t->width + j]);
                 dat[4 * (j * t->width + i) + 0] = static_cast<uint8_t>((c.r) * 0xFF);
                 dat[4 * (j * t->width + i) + 1] = static_cast<uint8_t>((c.g) * 0xFF);
                 dat[4 * (j * t->width + i) + 2] = static_cast<uint8_t>((c.b) * 0xFF);
@@ -239,9 +240,9 @@ namespace HiveEngine {
 
     void DynamicSphere::created(LODSquare *n) {
         auto lod = 2;
-        lod += resolution / (n->depth+1);
+        lod += resolution / (n->depth + 1);
         n->reset_corners();
-        if(available.empty()){
+        if (available.empty()) {
             n->payload_idx = squares.size();
             squares.push_back(n);
             textures.push_back(__generate_texture(n->vertices, n->size, lod, n));

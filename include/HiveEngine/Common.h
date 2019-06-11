@@ -25,6 +25,7 @@ namespace HiveEngine {
         bool is_relative;
 
         Force();
+
         Force(const glm::dvec3 &leverage, const glm::dvec3 &force, bool is_relative);
     };
 
@@ -49,8 +50,9 @@ namespace HiveEngine {
     };
 
     class AABB {
-        glm::dvec3 min{};
-        glm::dvec3 max{};
+    public:
+        glm::vec3 min{};
+        glm::vec3 max{};
 
         AABB();
 

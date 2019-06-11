@@ -3,13 +3,17 @@
 //
 
 #define VMA_IMPLEMENTATION
+
 #include <HiveEngine/Renderer/Context.h>
 #include <HiveEngine/Renderer/Directive.h>
 
 namespace HiveEngineRenderer {
 
-    VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger) {
-        auto func = (PFN_vkCreateDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
+    VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT *pCreateInfo,
+                                          const VkAllocationCallbacks *pAllocator,
+                                          VkDebugUtilsMessengerEXT *pDebugMessenger) {
+        auto func = (PFN_vkCreateDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance,
+                                                                               "vkCreateDebugUtilsMessengerEXT");
         if (func != nullptr) {
             return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
         } else {
@@ -17,21 +21,26 @@ namespace HiveEngineRenderer {
         }
     }
 
-    void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator) {
-        auto func = (PFN_vkDestroyDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
+    void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger,
+                                       const VkAllocationCallbacks *pAllocator) {
+        auto func = (PFN_vkDestroyDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance,
+                                                                                "vkDestroyDebugUtilsMessengerEXT");
         if (func != nullptr) {
             func(instance, debugMessenger, pAllocator);
         }
     }
 
-    static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData) {
+    static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+                                                        VkDebugUtilsMessageTypeFlagsEXT messageType,
+                                                        const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
+                                                        void *pUserData) {
         //std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
         std::cout << "validation layer: " << pCallbackData->pMessage << std::endl;
         return VK_FALSE;
     }
 
-    static void frame_buffer_resize_callback(GLFWwindow* window, int width, int height){
-        auto app = reinterpret_cast<Context*>(glfwGetWindowUserPointer(window));
+    static void frame_buffer_resize_callback(GLFWwindow *window, int width, int height) {
+        auto app = reinterpret_cast<Context *>(glfwGetWindowUserPointer(window));
         app->mark_resized();
     }
 
@@ -85,11 +94,11 @@ namespace HiveEngineRenderer {
 
         vkDestroyCommandPool(device, command_pool, nullptr);
 
-        for (auto directive: directives){
+        for (auto directive: directives) {
             delete directive;
         }
 
-        for (auto shader: shaders){
+        for (auto shader: shaders) {
             vkDestroyShaderModule(device, shader.second, nullptr);
         }
 
@@ -109,12 +118,12 @@ namespace HiveEngineRenderer {
         glfwTerminate();
     }
 
-    std::vector<const char*> getRequiredExtensions(std::vector<const char*> validation_layers) {
+    std::vector<const char *> getRequiredExtensions(std::vector<const char *> validation_layers) {
         uint32_t glfwExtensionCount = 0;
-        const char** glfwExtensions;
+        const char **glfwExtensions;
         glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 
-        std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
+        std::vector<const char *> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
 
         if (!validation_layers.empty()) {
             extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
@@ -168,7 +177,7 @@ namespace HiveEngineRenderer {
         for (auto layerName : validation_layers) {
             bool layerFound = false;
 
-            for (const auto& layerProperties : availableLayers) {
+            for (const auto &layerProperties : availableLayers) {
                 //std::cout << layerProperties.layerName << std::endl;
                 if (strcmp(layerName, layerProperties.layerName) == 0) {
                     layerFound = true;
@@ -185,13 +194,17 @@ namespace HiveEngineRenderer {
     }
 
     void Context::setup_debug_messenger() {
-        if(validation_layers.empty()) return;
+        if (validation_layers.empty()) return;
         std::cout << "Creating Vulkan debug messenger..." << std::endl;
 
         VkDebugUtilsMessengerCreateInfoEXT createInfo = {};
         createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-        createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-        createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+        createInfo.messageSeverity =
+                VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+                VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+        createInfo.messageType =
+                VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+                VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
         createInfo.pfnUserCallback = debugCallback;
         createInfo.pUserData = nullptr; // Optional
 
@@ -201,7 +214,7 @@ namespace HiveEngineRenderer {
 
     }
 
-    QueueFamilyIndices find_queue_families(VkPhysicalDevice device, VkSurfaceKHR surface){
+    QueueFamilyIndices find_queue_families(VkPhysicalDevice device, VkSurfaceKHR surface) {
         QueueFamilyIndices indices;
 
         uint32_t queue_family_count = 0;
@@ -211,7 +224,7 @@ namespace HiveEngineRenderer {
         vkGetPhysicalDeviceQueueFamilyProperties(device, &queue_family_count, queueFamilies.data());
 
         int i = 0;
-        for (const auto& queueFamily : queueFamilies) {
+        for (const auto &queueFamily : queueFamilies) {
             if (queueFamily.queueCount > 0 && queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
                 indices.graphics_family = i;
             }
@@ -231,11 +244,10 @@ namespace HiveEngineRenderer {
         }
 
 
-
         return indices;
     }
 
-    bool check_device_extension_support(VkPhysicalDevice device, std::vector<const char*> deviceExtensions) {
+    bool check_device_extension_support(VkPhysicalDevice device, std::vector<const char *> deviceExtensions) {
         uint32_t extensionCount;
         vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
 
@@ -244,14 +256,14 @@ namespace HiveEngineRenderer {
 
         std::set<std::string> requiredExtensions(deviceExtensions.begin(), deviceExtensions.end());
 
-        for (const auto& extension : availableExtensions) {
+        for (const auto &extension : availableExtensions) {
             requiredExtensions.erase(extension.extensionName);
         }
 
         return requiredExtensions.empty();
     }
 
-    bool is_device_suitable(VkPhysicalDevice device, VkSurfaceKHR surface, std::vector<const char*> deviceExtensions){
+    bool is_device_suitable(VkPhysicalDevice device, VkSurfaceKHR surface, std::vector<const char *> deviceExtensions) {
         QueueFamilyIndices indices = find_queue_families(device, surface);
 
         bool extensionsSupported = check_device_extension_support(device, deviceExtensions);
@@ -262,14 +274,14 @@ namespace HiveEngineRenderer {
     void Context::pick_physical_device() {
         uint32_t device_count = 0;
         vkEnumeratePhysicalDevices(instance, &device_count, nullptr);
-        if(device_count == 0) {
+        if (device_count == 0) {
             throw std::runtime_error("failed to find Vulkan supported devices!");
         }
 
         std::vector<VkPhysicalDevice> devices(device_count);
         vkEnumeratePhysicalDevices(instance, &device_count, devices.data());
 
-        for (const auto& device : devices) {
+        for (const auto &device : devices) {
             if (is_device_suitable(device, surface, deviceExtensions)) {
                 physical_device = device;
                 VkPhysicalDeviceProperties properties;
@@ -327,7 +339,7 @@ namespace HiveEngineRenderer {
         }
     }
 
-    SwapChainSupportDetails query_swap_chain_support(VkPhysicalDevice device, VkSurfaceKHR surface){
+    SwapChainSupportDetails query_swap_chain_support(VkPhysicalDevice device, VkSurfaceKHR surface) {
         SwapChainSupportDetails details;
 
         vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details.capabilities);
@@ -351,13 +363,14 @@ namespace HiveEngineRenderer {
         return details;
     }
 
-    VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats) {
+    VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR> &availableFormats) {
         if (availableFormats.size() == 1 && availableFormats[0].format == VK_FORMAT_UNDEFINED) {
             return {VK_FORMAT_B8G8R8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR};
         }
 
-        for (const auto& availableFormat : availableFormats) {
-            if (availableFormat.format == VK_FORMAT_B8G8R8A8_UNORM && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
+        for (const auto &availableFormat : availableFormats) {
+            if (availableFormat.format == VK_FORMAT_B8G8R8A8_UNORM &&
+                availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
                 return availableFormat;
             }
         }
@@ -365,10 +378,10 @@ namespace HiveEngineRenderer {
         return availableFormats[0];
     }
 
-    VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes) {
+    VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR> &availablePresentModes) {
         VkPresentModeKHR bestMode = VK_PRESENT_MODE_FIFO_KHR;
 
-        for (const auto& availablePresentMode : availablePresentModes) {
+        for (const auto &availablePresentMode : availablePresentModes) {
             if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
                 return availablePresentMode;
             } else if (availablePresentMode == VK_PRESENT_MODE_IMMEDIATE_KHR) {
@@ -379,7 +392,7 @@ namespace HiveEngineRenderer {
         return bestMode;
     }
 
-    VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, GLFWwindow* window) {
+    VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities, GLFWwindow *window) {
         if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
             return capabilities.currentExtent;
         } else {
@@ -391,8 +404,10 @@ namespace HiveEngineRenderer {
                     static_cast<uint32_t>(height)
             };
 
-            actualExtent.width = std::max(capabilities.minImageExtent.width, std::min(capabilities.maxImageExtent.width, actualExtent.width));
-            actualExtent.height = std::max(capabilities.minImageExtent.height, std::min(capabilities.maxImageExtent.height, actualExtent.height));
+            actualExtent.width = std::max(capabilities.minImageExtent.width,
+                                          std::min(capabilities.maxImageExtent.width, actualExtent.width));
+            actualExtent.height = std::max(capabilities.minImageExtent.height,
+                                           std::min(capabilities.maxImageExtent.height, actualExtent.height));
 
             return actualExtent;
         }
@@ -407,7 +422,8 @@ namespace HiveEngineRenderer {
         VkExtent2D extent = chooseSwapExtent(swapChainSupport.capabilities, window);
 
         uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
-        if (swapChainSupport.capabilities.maxImageCount > 0 && imageCount > swapChainSupport.capabilities.maxImageCount) {
+        if (swapChainSupport.capabilities.maxImageCount > 0 &&
+            imageCount > swapChainSupport.capabilities.maxImageCount) {
             imageCount = swapChainSupport.capabilities.maxImageCount;
         }
 
@@ -479,17 +495,17 @@ namespace HiveEngineRenderer {
 
     void Context::load_shaders() {
         std::string path = "shaders/";
-        if(!std::filesystem::exists(path)){
+        if (!std::filesystem::exists(path)) {
             path = "../shaders/";
-            if(!std::filesystem::exists(path)){
+            if (!std::filesystem::exists(path)) {
                 throw std::runtime_error("failed to find shaders folder!");
             }
         }
 
         std::cout << "LOADING SHADERS -> " << path << std::endl;
 
-        for (const auto & entry : std::filesystem::directory_iterator(path)){
-            if(entry.path().generic_string().find(".spv")!=std::string::npos){
+        for (const auto &entry : std::filesystem::directory_iterator(path)) {
+            if (entry.path().generic_string().find(".spv") != std::string::npos) {
                 std::string program_name = entry.path().filename().string();
                 program_name.erase(program_name.find(".spv"));
                 std::cout << "  loading: " << program_name << " ";
@@ -505,7 +521,7 @@ namespace HiveEngineRenderer {
                 VkShaderModuleCreateInfo createInfo = {};
                 createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
                 createInfo.codeSize = code.size();
-                createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
+                createInfo.pCode = reinterpret_cast<const uint32_t *>(code.data());
 
                 VkShaderModule shaderModule;
                 if (vkCreateShaderModule(device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
@@ -519,14 +535,15 @@ namespace HiveEngineRenderer {
     }
 
     void Context::register_directive(Directive *directive) {
-        if(directive == nullptr) throw std::runtime_error("failed to add directive (nullptr)!");
-        if(inited) vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE, std::numeric_limits<uint64_t>::max());
+        if (directive == nullptr) throw std::runtime_error("failed to add directive (nullptr)!");
+        if (inited)
+            vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE, std::numeric_limits<uint64_t>::max());
         this->directives.push_back(directive);
-        if(inited) vkResetFences(device, 1, &inFlightFences[currentFrame]);
+        if (inited) vkResetFences(device, 1, &inFlightFences[currentFrame]);
     }
 
     void Context::init_directives_frame_buffer() {
-        for(auto directive : directives){
+        for (auto directive : directives) {
             directive->init_frame_buffers();
         }
     }
@@ -571,7 +588,7 @@ namespace HiveEngineRenderer {
     }
 
     void Context::init_directives_command_buffer() {
-        for(auto directive : directives){
+        for (auto directive : directives) {
             directive->init_command_buffer();
         }
     }
@@ -602,7 +619,8 @@ namespace HiveEngineRenderer {
         vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE, std::numeric_limits<uint64_t>::max());
 
         uint32_t imageIndex;
-        VkResult result = vkAcquireNextImageKHR(device, swap_chain, std::numeric_limits<uint64_t>::max(), imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
+        VkResult result = vkAcquireNextImageKHR(device, swap_chain, std::numeric_limits<uint64_t>::max(),
+                                                imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
 
         if (result == VK_ERROR_OUT_OF_DATE_KHR) {
             recreate_swap_chain();
@@ -612,9 +630,9 @@ namespace HiveEngineRenderer {
         }
 
         std::vector<VkCommandBuffer> commandBuffers;
-        for(auto directive: directives){
+        for (auto directive: directives) {
             auto cmd_buff = directive->get_command_buffer(imageIndex);
-            if(cmd_buff != nullptr){
+            if (cmd_buff != nullptr) {
                 commandBuffers.push_back(cmd_buff);
             }
         }
@@ -678,7 +696,7 @@ namespace HiveEngineRenderer {
     }
 
     void Context::cleanup_swap_chain() {
-        for(auto directive: directives){
+        for (auto directive: directives) {
             directive->cleanup();
         }
 
@@ -820,7 +838,8 @@ namespace HiveEngineRenderer {
 
             sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
             destinationStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-        } else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+        } else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL &&
+                   newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
             barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
             barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
