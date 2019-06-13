@@ -5,26 +5,24 @@
 #ifndef HIVEENGINE_DRAWING_H
 #define HIVEENGINE_DRAWING_H
 
-#include <HiveEngine/Renderer/Directive.h>
-#include <HiveEngine/Renderer/vk_mem_alloc.h>
 #include <HiveEngine/Common.h>
+#include <HiveEngine/Renderer/Context.h>
 #include <cstddef>
 
-namespace HiveEngineRenderer {
+namespace HiveEngine::Renderer {
     class Drawing {
     private:
         bool enabled = true;
-        bool inited = false;
-        Directive *directive;
+        glm::uvec2 window_size;
+        size_t id;
+        Context* context = nullptr;
 
     public:
-        Drawing(Directive *directive);
+        Drawing(Context* context);
 
-        virtual void init(VkRenderPass render_pass);
+        virtual ~Drawing();
 
-        virtual void draw(VkCommandBuffer cmd_buffer);
-
-        virtual void cleanup();
+        virtual void draw();
 
         virtual void enable();
 
@@ -32,12 +30,15 @@ namespace HiveEngineRenderer {
 
         virtual bool is_enabled();
 
-        virtual bool is_inited();
-
         virtual Context *get_context();
 
-        virtual Directive *get_directive();
+        size_t get_id();
+
+        virtual void update_window_size(glm::uvec2 new_size);
+
+        glm::uvec2 get_window_size();
     };
+
 }
 
 #endif //HIVEENGINE_DRAWING_H

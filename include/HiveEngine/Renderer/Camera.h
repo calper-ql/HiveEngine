@@ -12,11 +12,9 @@
 #include <glm/gtc/matrix_access.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#define GLFW_INCLUDE_VULKAN
-
 #include <GLFW/glfw3.h>
 
-namespace HiveEngineRenderer {
+namespace HiveEngine::Renderer {
     float get_window_ratio(GLFWwindow *window);
 
     struct CameraPackage {

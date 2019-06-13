@@ -18,4 +18,8 @@ namespace HiveEngine {
     int get_minor_version() {
         return 2;
     }
+
+    void process_error() {
+        throw std::runtime_error("Check error logs...");
+    }
 }

@@ -65,10 +65,10 @@
 #define OEMRESOURCE
 
 #include <wctype.h>
-#include <Windows.h>
+#include <windows.h>
 #include <dinput.h>
-#include <Xinput.h>
-#include <Dbt.h>
+#include <xinput.h>
+#include <dbt.h>
 
 // HACK: Define macros that some windows.h variants don't
 #ifndef WM_MOUSEHWHEEL

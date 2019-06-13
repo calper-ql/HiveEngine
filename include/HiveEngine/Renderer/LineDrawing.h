@@ -1,5 +1,5 @@
 //
-// Created by calper on 5/7/19.
+// Created by calpe on 6/12/2019.
 //
 
 #ifndef HIVEENGINE_LINEDRAWING_H
@@ -7,46 +7,44 @@
 
 #include <HiveEngine/Renderer/Drawing.h>
 #include <HiveEngine/Buffer.hpp>
-#include <HiveEngine/Renderer/Camera.h>
+#include <HiveEngine/Texture.h>
 
-namespace HiveEngineRenderer {
+namespace HiveEngine::Renderer {
+    struct LineData {
+        glm::vec3 a_position;
+        glm::vec4 a_color;
+        glm::vec3 b_position;
+        glm::vec4 b_color;
+    };
+
+    struct LineDescription {
+        size_t id;
+    };
+
     class LineDrawing : public Drawing {
     public:
-        HiveEngine::Buffer<HiveEngine::Line> line_buffer;
+        HiveEngine::Buffer<LineData> vertices; // Orientations
 
-        VmaAllocation point_allocation = nullptr;
-        VkBuffer vk_point_buffer = nullptr;
+        GLuint texture_id;
+        GLuint VBO, VAO;
+        GLuint program;
 
-        VmaAllocation state_allocation = nullptr;
-        VkBuffer vk_state_buffer = nullptr;
+        GLuint vert_shader;
+        GLuint frag_shader;
 
-        VmaAllocation camera_allocation = nullptr;
-        VkBuffer vk_camera_buffer = nullptr;
+        unsigned line_width;
 
-        VkPipeline graphicsPipeline;
-        VkPipelineLayout pipelineLayout;
+        explicit LineDrawing(Context *context, unsigned line_width=1);
 
-        std::array<VkVertexInputBindingDescription, 1> bindingDescriptions = {};
-        std::array<VkVertexInputAttributeDescription, 2> attributeDescriptions = {};
+        ~LineDrawing() override;
 
-        VkDescriptorPool descriptorPool;
-        VkDescriptorSetLayout descriptorSetLayout;
-        VkDescriptorSet descriptorSet;
+        void draw() override;
 
-        float line_width = 1;
+        LineDescription add_line(glm::vec3 a, glm::vec4 ac, glm::vec3 b, glm::vec4 bc);
 
-        Camera *camera;
-
-        LineDrawing(Directive *directive, Camera *camera);
-
-        void init(VkRenderPass render_pass) override;
-
-        void update();
-
-        void draw(VkCommandBuffer cmd_buffer) override;
-
-        void cleanup() override;
+        void remove_line(LineDescription ld);
     };
+
 }
 
 #endif //HIVEENGINE_LINEDRAWING_H

@@ -4,7 +4,7 @@
 
 #include <HiveEngine/Renderer/Camera.h>
 
-namespace HiveEngineRenderer {
+namespace HiveEngine::Renderer {
 
     float get_window_ratio(GLFWwindow *window) {
         int width;
@@ -14,7 +14,7 @@ namespace HiveEngineRenderer {
         return width / (float) height;
     }
 
-    HiveEngineRenderer::Camera::Camera() {
+    Camera::Camera() {
         orientation = glm::quat(glm::vec3(0, 0, 0));
         set_perspective(90, 1, 0.1, 1000.0);
         traverse_modifier = 0.0001;

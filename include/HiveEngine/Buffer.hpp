@@ -9,6 +9,7 @@
 #include <deque>
 #include <cstdint>
 #include <stdexcept>
+#include <HiveEngine/HiveEngine.h>
 
 namespace HiveEngine {
     template<class T>
@@ -33,14 +34,19 @@ namespace HiveEngine {
     public:
         std::pair<T, uint8_t> get(size_t index) {
             if (index >= data.size()) {
-                throw std::runtime_error("failure, Buffer was asked to retrieve an index out of range!");
+                spdlog::error("Buffer was asked to retrieve an index out of range!");
+                process_error();
             }
             return std::make_pair(data[index], state[index]);
         }
 
         void set(size_t index, T item) {
             if (index >= data.size()) {
-                throw std::runtime_error("failure, Buffer was asked to set an index out of range!");
+                spdlog::error("Buffer was asked to set an index out of range!");
+                process_error();
+            } if (state[index] == 0) {
+                spdlog::error("Buffer was asked to set an erased element!");
+                process_error();
             }
             data[index] = item;
             mark_changed();
@@ -57,11 +63,17 @@ namespace HiveEngine {
         }
 
         void remove(size_t index) {
-            if (index >= data.size()) return;
+            if (index >= data.size()) {
+                spdlog::error("Buffer was asked to set an index out of range!");
+                process_error();
+            }
             if (state[index]) {
                 available.push_back(index);
                 state[index] = 0;
                 mark_changed();
+            } else {
+                spdlog::error("Buffer was asked to erase an erased element!");
+                process_error();
             }
         }
 

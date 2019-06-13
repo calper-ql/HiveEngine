@@ -9,78 +9,49 @@
 #include <HiveEngine/Buffer.hpp>
 #include <HiveEngine/Texture.h>
 
-namespace HiveEngineRenderer {
+namespace HiveEngine::Renderer {
     struct ImageOrientation {
         glm::vec3 f0;
         glm::vec2 f0uv;
+        glm::vec4 c0;
         glm::vec3 f1;
         glm::vec2 f1uv;
+        glm::vec4 c1;
         glm::vec3 f2;
         glm::vec2 f2uv;
-        glm::vec3 f3;
-        glm::vec2 f3uv;
-        glm::vec3 f4;
-        glm::vec2 f4uv;
-        glm::vec3 f5;
-        glm::vec2 f5uv;
-    };
-
-    struct ImageTriangleDescription {
-        int texture_index = -1;
+        glm::vec4 c2;
     };
 
     struct ImageColorDescription {
         glm::vec4 color = {1.0, 0.0, 1.0, 1.0};
     };
 
+    class GlyphDrawing;
+
     struct ImageDescription {
-        size_t orientation;
-        size_t itdesc1;
-        size_t itdesc2;
+        GlyphDrawing* glyph_drawing;
+        size_t orientation1;
+        size_t orientation2;
     };
 
     class GlyphDrawing : public Drawing {
     public:
         HiveEngine::Buffer<ImageOrientation> imos; // Orientations
-        HiveEngine::Buffer<ImageTriangleDescription> imtds; // Descriptions
-        HiveEngine::Buffer<ImageColorDescription> icds; // Descriptions
-
-        VmaAllocation orientation_allocation = nullptr;
-        VkBuffer orientation_buffer = nullptr;
-
-        VmaAllocation description_allocation = nullptr;
-        VkBuffer description_buffer = nullptr;
-
-        VmaAllocation color_allocation = nullptr;
-        VkBuffer color_buffer = nullptr;
-
-        VkPipeline graphicsPipeline;
-        VkPipelineLayout pipelineLayout;
-
-        VkDescriptorPool descriptorPool;
-        VkDescriptorSetLayout descriptorSetLayout;
-        VkDescriptorSet descriptorSet;
 
         HiveEngine::Texture texture;
-        VkImage textureImage = nullptr;
-        VmaAllocation textureAllocation = nullptr;
 
-        VkImageView imageView;
-        VkSampler textureSampler;
+        GLuint texture_id;
+        GLuint VBO, VAO;
+        GLuint program;
 
-        bool image_pushed = false;
+        GLuint vert_shader;
+        GLuint frag_shader;
 
-        GlyphDrawing(Directive *directive, HiveEngine::Texture texture);
+        GlyphDrawing(Context* context, HiveEngine::Texture texture);
 
-        ~GlyphDrawing();
+        ~GlyphDrawing() override;
 
-        void init(VkRenderPass render_pass) override;
-
-        void update();
-
-        void draw(VkCommandBuffer cmd_buffer) override;
-
-        void cleanup() override;
+        void draw() override;
 
         ImageDescription add_image_center(glm::vec3 position, float width, float height, glm::vec4 color);
 

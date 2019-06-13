@@ -15,7 +15,7 @@
 
 #include <HiveEngine/Texture.h>
 
-namespace HiveEngineRenderer {
+namespace HiveEngine::Renderer {
     struct Glyph {
         HiveEngine::Texture texture;
         FT_Glyph_Metrics metrics;

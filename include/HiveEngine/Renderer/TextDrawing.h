@@ -9,28 +9,51 @@
 #include <HiveEngine/Renderer/GlyphDrawing.h>
 #include <HiveEngine/Common.h>
 
-namespace HiveEngineRenderer{
+namespace HiveEngine::Renderer {
+    enum TextDescriptionState {
+        CENTER = 0, LEFT = 1, RIGHT = 2
+    };
+
     struct TextDescription {
-        std::vector<ImageDescription> glyphs;
+        std::string str;
+        glm::vec3 pos;
+        glm::vec4 color;
+        float max_height;
+        std::vector<ImageDescription> descriptors;
         HiveEngine::AABB bbox;
+        size_t id;
+        TextDescriptionState tds;
     };
 
     class TextDrawing : public Drawing {
         public:
         FontManager* font_manager;
+        Context* context;
+
+        Buffer<TextDescription> text_descriptors;
 
         std::vector<Glyph> glyphs;
         std::vector<GlyphDrawing*> glyph_drawings;
 
-        TextDrawing(Directive *directive, FontManager *font_manager, std::string font_name);
+        float total_height;
+        float hanging_dist;
 
-        void init(VkRenderPass render_pass) override;
+        TextDrawing(Context* context, FontManager *font_manager, std::string font_name);
+        virtual ~TextDrawing();
 
-        void draw(VkCommandBuffer cmd_buffer) override;
+        TextDescription add_text(std::string str, glm::vec3 pos, float max_height, TextDescriptionState tds,
+                                   glm::vec4 color = {
+                                           1.0, 1.0, 1.0, 1.0});
 
-        void cleanup() override;
+        std::vector<ImageDescription> __add_text(std::string str, glm::vec3 pos, float max_height, TextDescriptionState tds,
+                                   glm::vec4 color);
 
-        TextDescription add_text_center(std::string str, glm::vec3 pos, float max_height);
+        void update_text(TextDescription td);
+
+        void remove_text(TextDescription td);
+
+        void update_window_size(glm::uvec2 new_size) override;
+
     };
 }
 
