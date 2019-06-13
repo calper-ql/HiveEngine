@@ -34,7 +34,7 @@ namespace HiveEngine::Renderer {
 
         void load_font(std::string font_name, std::string path);
 
-        Glyph get_glyph(std::string font_name, FT_ULong c);
+        Glyph get_glyph(std::string font_name, FT_ULong c, unsigned pixel_size=60);
 
     };
 }

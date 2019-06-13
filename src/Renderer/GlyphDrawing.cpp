@@ -36,18 +36,14 @@ namespace HiveEngine::Renderer {
         if(texture.channel == 3) format = GL_RGB;
         if(texture.channel == 1) format = GL_RED;
 
-        GLenum internal_format = GL_RGBA;
-        if(texture.channel == 3) internal_format = GL_RGB;
-        if(texture.channel == 1) internal_format = GL_RED;
-
-        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+        glPixelStorei(GL_UNPACK_ALIGNMENT, texture.channel);
 
         glGenTextures(1, &texture_id);
         glBindTexture(GL_TEXTURE_2D, texture_id);
 
         glTexImage2D(GL_TEXTURE_2D,
                 0,
-                internal_format,
+                format,
                 texture.width,
                 texture.height,
                 0,
@@ -55,7 +51,12 @@ namespace HiveEngine::Renderer {
                 GL_UNSIGNED_BYTE,
                 texture.data.data());
 
-        glGenerateMipmap(texture_id);
+        glGenerateMipmap(GL_TEXTURE_2D);
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
         glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
 
@@ -64,10 +65,6 @@ namespace HiveEngine::Renderer {
 
         imos.mark_changed();
 
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
         glBindVertexArray(VAO);
         glBindBuffer(GL_ARRAY_BUFFER, VBO);

@@ -10,6 +10,7 @@ layout(location = 0) out vec4 outColor;
 uniform sampler2D texture1;
 
 void main() {
-    if(texture(texture1, frag_uv).r == 0) discard;
-    outColor = frag_color;
+    float tval = texture(texture1, frag_uv).r;
+    if(tval == 0) discard;
+    outColor = frag_color * tval;
 }

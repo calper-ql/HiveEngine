@@ -32,10 +32,9 @@ namespace HiveEngine::Renderer {
             process_error();
         }
         faces[font_name] = face;
-        FT_Set_Pixel_Sizes(face, 0, 60*64);
     }
 
-    Glyph FontManager::get_glyph(std::string font_name, FT_ULong c) {
+    Glyph FontManager::get_glyph(std::string font_name, FT_ULong c, unsigned pixel_size) {
         Glyph glyph;
 
         if(faces.find(font_name) == faces.end()){
@@ -44,6 +43,7 @@ namespace HiveEngine::Renderer {
         }
 
         auto face = faces[font_name];
+        FT_Set_Pixel_Sizes(face, 0, pixel_size*64);
 
         auto error = FT_Load_Char(face, c, FT_LOAD_RENDER);
         if(error){
