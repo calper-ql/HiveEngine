@@ -55,6 +55,8 @@ namespace HiveEngine::Renderer {
 
         glEnable(GL_DEPTH_TEST);
         glViewport(0, 0, window_size.x, window_size.y);
+
+        draw();
     }
 
     void context_resize_event(GLFWwindow *window, int width, int height) {
