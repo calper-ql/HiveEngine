@@ -47,3 +47,7 @@ cmake-build*
 
 #clion
 .idea/*
+
+# VS code
+.vs/*
+.vs
