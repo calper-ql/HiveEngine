@@ -1,0 +1,22 @@
+﻿{
+    "configurations": [
+        {
+            "name": "x64-Debug",
+            "generator": "Ninja",
+            "configurationType": "Debug",
+            "inheritEnvironments": [ "msvc_x64_x64" ],
+            "buildRoot": "${env.USERPROFILE}\\CMakeBuilds\\${workspaceHash}\\build\\${name}",
+            "installRoot": "${env.USERPROFILE}\\CMakeBuilds\\${workspaceHash}\\install\\${name}",
+            "cmakeCommandArgs": "-DBUILD_RENDERER=ON",
+            "buildCommandArgs": "-v",
+            "ctestCommandArgs": "",
+            "variables": [
+                {
+                    "name": "OptiX_INSTALL_DIR",
+                    "value": "C:/ProgramData/NVIDIA Corporation/OptiX SDK 6.0.0",
+                    "type": "PATH"
+                }
+            ]
+        }
+    ]
+}
