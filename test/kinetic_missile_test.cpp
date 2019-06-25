@@ -1,5 +1,5 @@
 //
-// Created by calper on 4/18/19.
+// Created by calpe on 6/21/2019.
 //
 
 #include <HiveEngine/HiveEngine.h>
@@ -18,7 +18,7 @@
 
 int main(int argc, char* argv[]){
     std::cout << "HiveEngine version: " << HiveEngine::get_major_version()
-    << "." << HiveEngine::get_minor_version() << std::endl;
+              << "." << HiveEngine::get_minor_version() << std::endl;
 
     HiveEngine::Renderer::Camera camera;
     camera.set_position({0.0, 0.0, -3.30});
@@ -39,7 +39,7 @@ int main(int argc, char* argv[]){
 
     HiveEngine::Renderer::TextDrawing ffdin_font(&context, &font_manager, "ffdin");
     ffdin_font.add_text("The Expanse |/'!", {0.0, 0.2, 0.0}, 0.1,
-            HiveEngine::Renderer::TextDescriptionState::CENTER, {0.0, 1.0, 0.0, 1.0});
+                        HiveEngine::Renderer::TextDescriptionState::CENTER, {0.0, 1.0, 0.0, 1.0});
 
     HiveEngine::Renderer::TextDrawing expanse_font(&context, &font_manager, "TheExpanse");
     expanse_font.add_text("The Expanse |/'!", {0.0, -0.2, 0.0}, 0.1, HiveEngine::Renderer::TextDescriptionState::CENTER);

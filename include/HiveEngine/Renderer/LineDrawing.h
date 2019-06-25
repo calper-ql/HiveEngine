@@ -8,22 +8,17 @@
 #include <HiveEngine/Renderer/Drawing.h>
 #include <HiveEngine/Buffer.hpp>
 #include <HiveEngine/Texture.h>
+#include <HiveEngine/Renderer/Camera.h>
 
 namespace HiveEngine::Renderer {
-    struct LineData {
-        glm::vec3 a_position;
-        glm::vec4 a_color;
-        glm::vec3 b_position;
-        glm::vec4 b_color;
-    };
-
     struct LineDescription {
         size_t id;
     };
 
     class LineDrawing : public Drawing {
     public:
-        HiveEngine::Buffer<LineData> vertices; // Orientations
+        HiveEngine::Buffer<Line> lines; // Orientations
+        HiveEngine::Renderer::Camera* camera = nullptr;
 
         GLuint texture_id;
         GLuint VBO, VAO;
@@ -41,6 +36,10 @@ namespace HiveEngine::Renderer {
         void draw() override;
 
         LineDescription add_line(glm::vec3 a, glm::vec4 ac, glm::vec3 b, glm::vec4 bc);
+
+        LineDescription add_line(Line line);
+
+        void refresh_line(LineDescription ld, Line new_line);
 
         void remove_line(LineDescription ld);
     };

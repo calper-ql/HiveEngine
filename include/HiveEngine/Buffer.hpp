@@ -31,13 +31,23 @@ namespace HiveEngine {
             state.resize(final_size, 0);
         }
 
+        size_t expand_size = 1;
+
     public:
-        std::pair<T, uint8_t> get(size_t index) {
+        std::pair<T, uint8_t> get_all(size_t index) {
             if (index >= data.size()) {
                 spdlog::error("Buffer was asked to retrieve an index out of range!");
                 process_error();
             }
             return std::make_pair(data[index], state[index]);
+        }
+
+        T get(size_t index) {
+            if (index >= data.size()) {
+                spdlog::error("Buffer was asked to retrieve an index out of range!");
+                process_error();
+            }
+            return data[index];
         }
 
         void set(size_t index, T item) {
@@ -52,8 +62,25 @@ namespace HiveEngine {
             mark_changed();
         }
 
+        void set_state(size_t index, int value) {
+            if (index >= data.size()) {
+                spdlog::error("Buffer was asked to set a state index out of range!");
+                process_error();
+            }
+            state[index] = value;
+            mark_changed();
+        }
+
+        int get_state(size_t index){
+            if (index >= data.size()) {
+                spdlog::error("Buffer was asked to retrieve an index out of range!");
+                process_error();
+            }
+            return state[index];
+        }
+
         size_t add(T item) {
-            if (available.size() == 0) expand(10);
+            if (available.size() == 0) expand(expand_size);
             size_t index = available.front();
             available.pop_front();
             data[index] = item;
@@ -77,11 +104,24 @@ namespace HiveEngine {
             }
         }
 
-        std::vector<T> get_data() {
+        void flush(char* ptr, size_t count, size_t data_size){
+            data.clear();
+            state.clear();
+            data.resize(count);
+            state.resize(count, 1);
+            std::memcpy((char*)data.data(), ptr, count*data_size);
+            mark_changed();
+        }
+
+        T* get_ptr(){
+            return data.data();
+        }
+
+        std::vector<T>& get_data() {
             return data;
         }
 
-        std::vector<int> get_state() {
+        std::vector<int>& get_state() {
             return state;
         }
 

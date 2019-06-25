@@ -198,7 +198,7 @@ namespace HiveEngine::Renderer {
     }
 
     void Context::remove_drawing(Drawing *drawing) {
-        auto interior = drawings.get(drawing->get_id());
+        auto interior = drawings.get_all(drawing->get_id());
         if(interior.second && drawing == interior.first){
             drawings.remove(drawing->get_id());
         }
@@ -214,10 +214,9 @@ namespace HiveEngine::Renderer {
             glfwGetWindowSize(window, &width, &height);
             glViewport(0, 0, width, height);
             for (int i = 0; i < drawings.size(); ++i) {
-                auto pair = drawings.get(i);
+                auto pair = drawings.get_all(i);
                 if(pair.second) pair.first->update_window_size({width, height});
             }
-            spdlog::info("resized window");
         }
 
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -225,8 +224,8 @@ namespace HiveEngine::Renderer {
 
         auto size = drawings.size();
         for (size_t i = 0; i < size; ++i) {
-            auto drawing = drawings.get(i);
-            if(drawing.second) drawing.first->draw();
+            auto drawing = drawings.get_all(i);
+            if(drawing.second) if(drawing.first->is_enabled()) drawing.first->draw();
         }
 
         glfwSwapBuffers(window);

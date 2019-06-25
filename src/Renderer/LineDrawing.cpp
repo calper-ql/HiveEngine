@@ -37,30 +37,42 @@ namespace HiveEngine::Renderer {
         glBindBuffer(GL_ARRAY_BUFFER, VBO);
 
         GLint part_size = sizeof(glm::vec3) + sizeof(glm::vec4);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, part_size, (void *)offsetof(LineData, a_position));
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, part_size, (void *)offsetof(Line, a.position));
         glEnableVertexAttribArray(0);
-        glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, part_size, (void *)offsetof(LineData, a_color));
+        glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, part_size, (void *)offsetof(Line, a.color));
         glEnableVertexAttribArray(1);
 
-        vertices.mark_changed();
+        lines.mark_changed();
     }
 
     void LineDrawing::draw() {
+        CameraPackage cp;
+        if(camera) {
+            camera->set_ratio(get_window_size().x / (float)get_window_size().y);
+            cp = camera->get_package();
+        }
+
         Drawing::draw();
         glEnable(GL_DEPTH_TEST);
 
         glUseProgram(program);
         glBindVertexArray(VAO);
 
-        if(vertices.is_changed()){
-            vertices.mark_unchanged();
+        if(lines.is_changed()){
+            lines.mark_unchanged();
             glBindBuffer(GL_ARRAY_BUFFER, VBO);
-            glBufferData(GL_ARRAY_BUFFER, sizeof(LineData) * vertices.size(), vertices.get_data().data(), GL_DYNAMIC_DRAW);
+            glBufferData(GL_ARRAY_BUFFER, sizeof(Line) * lines.size(), lines.get_data().data(), GL_DYNAMIC_DRAW);
         }
 
         glLineWidth(line_width);
 
-        glDrawArrays(GL_LINES, 0, vertices.size()*2);
+        unsigned int view_apply_loc = glGetUniformLocation(program, "view_apply");
+        glUniform1i(view_apply_loc, cp.apply);
+
+        unsigned int view_loc = glGetUniformLocation(program, "view");
+        glUniformMatrix4fv(view_loc, 1, GL_FALSE, glm::value_ptr(cp.view));
+
+        glDrawArrays(GL_LINES, 0, lines.size()*2);
 
     }
 
@@ -70,21 +82,32 @@ namespace HiveEngine::Renderer {
     }
 
     LineDescription LineDrawing::add_line(glm::vec3 a, glm::vec4 ac, glm::vec3 b, glm::vec4 bc) {
-        LineData data = {};
+        Line data = {};
         LineDescription ld = {};
 
-        data.a_position = a;
-        data.b_position = b;
-        data.a_color = ac;
-        data.b_color = bc;
+        data.a.position = a;
+        data.b.position = b;
+        data.a.color = ac;
+        data.b.color = bc;
 
-        ld.id = vertices.add(data);
+        ld.id = lines.add(data);
         return ld;
     }
 
     void LineDrawing::remove_line(LineDescription ld) {
-        LineData data = {};
-        vertices.set(ld.id, data);
-        vertices.remove(ld.id);
+        Line data = {};
+        lines.set(ld.id, data);
+        lines.remove(ld.id);
+    }
+
+    LineDescription LineDrawing::add_line(Line line) {
+        Line data = line;
+        LineDescription ld = {};
+        ld.id = lines.add(data);
+        return ld;
+    }
+
+    void LineDrawing::refresh_line(LineDescription ld, Line new_line) {
+        lines.set(ld.id, new_line);
     }
 }

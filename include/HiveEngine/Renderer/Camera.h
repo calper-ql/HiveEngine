@@ -18,8 +18,8 @@ namespace HiveEngine::Renderer {
     float get_window_ratio(GLFWwindow *window);
 
     struct CameraPackage {
-        glm::mat4 view;
-        int apply = 1;
+        glm::mat4 view = {};
+        int apply = 0;
     };
 
     class Camera {
@@ -27,9 +27,15 @@ namespace HiveEngine::Renderer {
         glm::vec3 position;
         glm::quat orientation;
         glm::mat4 perspective;
+        float fov;
+        float ratio;
+        float near_;
+        float far_;
 
         int m_press = 0;
         glm::ivec2 last_m_pos;
+
+        int apply = 1;
 
     public:
         float traverse_modifier;
@@ -37,7 +43,9 @@ namespace HiveEngine::Renderer {
 
         Camera();
 
-        void set_perspective(float fov, float ratio, float near, float far);
+        void set_ratio(float ratio);
+
+        void set_perspective(float fov, float ratio, float near_, float far_);
 
         void set_position(glm::vec3 position);
 
@@ -54,6 +62,10 @@ namespace HiveEngine::Renderer {
         void get_user_input(GLFWwindow *window);
 
         void get_user_movement(GLFWwindow *window);
+
+        void disable();
+
+        void enable();
     };
 
 }

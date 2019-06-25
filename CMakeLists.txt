@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 project(HiveEngine VERSION 1.0.0 LANGUAGES CXX C)
 
 option(BUILD_RENDERER "Build the renderer for HiveEngine" OFF)
+set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 
 if(BUILD_RENDERER)
     add_subdirectory(third_party/freetype-2.10.0)
@@ -14,16 +15,23 @@ if(BUILD_RENDERER)
     set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
     set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
     add_subdirectory(third_party/glfw-3.3)
+
+    find_package(CUDA 10.1 REQUIRED)
+    find_package(OptiX REQUIRED)
+    include_directories(${OptiX_INCLUDE})
+    include_directories(${CUDA_INCLUDE_DIRS})
 endif(BUILD_RENDERER)
 
 set(GLM_TEST_ENABLE OFF CACHE BOOL "" FORCE)
 add_subdirectory(third_party/glm)
 add_subdirectory(third_party/spdlog-1.3.1)
+add_subdirectory(third_party/assimp-4.1.0)
+set(ASSIMP_INCLUDE_DIR third_party/assimp-4.1.0/include)
 
-set(SOURCES src/HiveEngine.cpp include/HiveEngine/LODSquare.h src/LODSquare.cpp include/HiveEngine/DynamicSphere.h include/HiveEngine/RadialGenerator.h src/RadialGenerator.cpp include/HiveEngine/Texture.h src/DynamicSphere.cpp include/HiveEngine/Entity.h src/Entity.cpp include/HiveEngine/Utilities.h src/Utilities.cpp include/HiveEngine/Common.h src/Common.cpp include/HiveEngine/Mesh.h include/HiveEngine/Buffer.hpp include/HiveEngine/stb/stb_image.h include/HiveEngine/Texture.h src/Texture.cpp)
+set(SOURCES src/HiveEngine.cpp include/HiveEngine/LODSquare.h src/LODSquare.cpp include/HiveEngine/DynamicSphere.h include/HiveEngine/RadialGenerator.h src/RadialGenerator.cpp include/HiveEngine/Texture.h src/DynamicSphere.cpp include/HiveEngine/PhysicalEntity.h src/PhysicalEntity.cpp include/HiveEngine/Utilities.h src/Utilities.cpp include/HiveEngine/Common.h src/Common.cpp include/HiveEngine/Mesh.h include/HiveEngine/Buffer.hpp include/HiveEngine/stb/stb_image.h include/HiveEngine/Texture.h src/Texture.cpp include/HiveEngine/noise.h src/noise.cpp src/Context.cpp include/HiveEngine/Context.h)
 
 if(BUILD_RENDERER)
-    set(SOURCES ${SOURCES} include/HiveEngine/Renderer/Context.h src/Renderer/Context.cpp include/HiveEngine/Renderer/Camera.h src/Renderer/Camera.cpp include/HiveEngine/Renderer/glad/glad.h include/HiveEngine/Renderer/KHR/khrplatform.h include/HiveEngine/Renderer/Drawing.h src/Renderer/Drawing.cpp include/HiveEngine/Renderer/FontManager.h src/Renderer/FontManager.cpp include/HiveEngine/Renderer/GlyphDrawing.h src/Renderer/GlyphDrawing.cpp include/HiveEngine/Renderer/TextDrawing.h src/Renderer/TextDrawing.cpp src/Renderer/LineDrawing.cpp include/HiveEngine/Renderer/LineDrawing.h)
+    set(SOURCES ${SOURCES} include/HiveEngine/Renderer/Context.h src/Renderer/Context.cpp include/HiveEngine/Renderer/Camera.h src/Renderer/Camera.cpp include/HiveEngine/Renderer/glad/glad.h include/HiveEngine/Renderer/KHR/khrplatform.h include/HiveEngine/Renderer/Drawing.h src/Renderer/Drawing.cpp include/HiveEngine/Renderer/FontManager.h src/Renderer/FontManager.cpp include/HiveEngine/Renderer/GlyphDrawing.h src/Renderer/GlyphDrawing.cpp include/HiveEngine/Renderer/TextDrawing.h src/Renderer/TextDrawing.cpp src/Renderer/LineDrawing.cpp include/HiveEngine/Renderer/LineDrawing.h src/Renderer/OptixDrawing.cpp include/HiveEngine/Renderer/OptixDrawing.h src/Context.cpp include/HiveEngine/Context.h src/Renderer/AABBDrawing.cpp include/HiveEngine/Renderer/AABBDrawing.h)
     file(GLOB_RECURSE GLSL_SOURCE_FILES
             "shaders/*.frag"
             "shaders/*.vert"
@@ -35,11 +43,14 @@ if(BUILD_RENDERER)
 endif(BUILD_RENDERER)
 
 include_directories(include)
+include_directories(${ASSIMP_INCLUDE_DIR})
+message(STATUS "Assimp: " ${ASSIMP_INCLUDE_DIR})
 
 message(STATUS "Sources:    " ${SOURCES})
 add_library(HiveEngine STATIC ${SOURCES} src/Renderer/glad.c)
 target_compile_features(HiveEngine PUBLIC cxx_std_17)
 
+target_link_libraries(HiveEngine PUBLIC assimp)
 target_link_libraries(HiveEngine PUBLIC glm)
 target_link_libraries(HiveEngine PUBLIC spdlog)
 IF(WIN32)

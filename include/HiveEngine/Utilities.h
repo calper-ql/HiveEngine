@@ -12,13 +12,10 @@
 
 
 namespace HiveEngine {
-    class Entity;
+    class PhysicalEntity;
 
-    glm::dmat3 generate_rotation_matrix(char axis, double angle); // angle is radians
-    std::pair<std::vector<glm::vec3>, std::vector<glm::vec3>> generate_entity_line_description(Entity *e,
-                                                                                               glm::dvec3 scale); // generates lines for renderer, scales each dim, 0.0 -> 1.0
-    std::pair<std::vector<glm::vec3>, std::vector<glm::vec3>>
-    generate_target_line_description(glm::dvec3 vec, double radius, glm::dvec3 scale, glm::dvec3 color);
+    glm::mat3 generate_rotation_matrix(char axis, float angle); // angle is radians
+
 
     std::string dvec3_to_str(glm::dvec3 value);
 }

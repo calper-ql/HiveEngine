@@ -6,7 +6,11 @@ layout(location = 1) in vec4 color;
 
 layout(location = 0) out vec4 fragColor;
 
+uniform mat4 view;
+uniform int view_apply;
+
 void main() {
-    gl_Position = (vec4(position, 1.0));
+    if(view_apply == 1) gl_Position = view * (vec4(position, 1.0));
+    else gl_Position = (vec4(position, 1.0));
     fragColor = color;
 }

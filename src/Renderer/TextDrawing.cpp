@@ -107,7 +107,7 @@ namespace HiveEngine::Renderer {
 
         auto size = text_descriptors.size();
         for (size_t i = 0; i < size; ++i) {
-            auto pair = text_descriptors.get(i);
+            auto pair = text_descriptors.get_all(i);
             if(pair.second){
                 update_text(pair.first);
             }

@@ -41,7 +41,7 @@ namespace HiveEngine::Renderer {
         TextDrawing(Context* context, FontManager *font_manager, std::string font_name);
         virtual ~TextDrawing();
 
-        TextDescription add_text(std::string str, glm::vec3 pos, float max_height, TextDescriptionState tds,
+        TextDescription add_text(std::string str, glm::vec3 pos, float max_height, TextDescriptionState tds=CENTER,
                                    glm::vec4 color = {
                                            1.0, 1.0, 1.0, 1.0});
 
