@@ -47,12 +47,6 @@ namespace HiveEngine::Renderer {
             process_error();
         }
 
-        glfwSetWindowSizeCallback(window, context_resize_event);
-        //glfwSetFramebufferSizeCallback(window, context_resize_event);
-        //glfwSetWindowMaximizeCallback(window, context_maximize_event);
-        //glfwSetWindowPosCallback(window, context_position_event);
-        glfwSetWindowUserPointer(window, this);
-
         glEnable(GL_DEPTH_TEST);
         glViewport(0, 0, window_size.x, window_size.y);
 
@@ -205,7 +199,9 @@ namespace HiveEngine::Renderer {
     }
 
     bool Context::draw() {
-        glfwMakeContextCurrent(window);
+        glfwMakeContextCurrent(this->window);
+        glfwSetWindowUserPointer(window, this);
+        glfwSetWindowSizeCallback(window, context_resize_event);
         glfwPollEvents();
 
         if(resize) {

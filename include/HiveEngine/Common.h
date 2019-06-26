@@ -60,10 +60,6 @@ namespace HiveEngine {
         bool collides(AABB other);
     };
 
-    struct DAABB_LINES {
-        Line data[12] = {};
-    };
-
     class DAABB {
     public:
         glm::dvec3 min{};
@@ -73,7 +69,6 @@ namespace HiveEngine {
 
         bool collides(DAABB other);
 
-        DAABB_LINES to_lines(glm::vec3 offset, glm::vec4 color);
     };
 
 }

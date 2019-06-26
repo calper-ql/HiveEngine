@@ -45,8 +45,6 @@ namespace HiveEngine {
         void remove_entity(size_t id);
 
         void step(unsigned ticks_per_second);
-
-        std::vector<HiveEngine::DAABB_LINES> generate_bbox_lines();
     };
 
     class System {

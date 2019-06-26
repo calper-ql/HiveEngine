@@ -66,6 +66,8 @@ namespace HiveEngine::Renderer {
         void disable();
 
         void enable();
+
+        float __mouse_wheel = 0.0;
     };
 
 }
