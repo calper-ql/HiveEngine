@@ -3,6 +3,7 @@
 //
 
 #include <HiveEngine/Renderer/Camera.h>
+#include <HiveEngine/HiveEngine.h>
 #include <iostream>
 
 namespace HiveEngine::Renderer {
@@ -17,7 +18,7 @@ namespace HiveEngine::Renderer {
 
     Camera::Camera() {
         orientation = glm::quat(glm::vec3(0, 0, 0));
-        set_perspective(90, 1, 0.01, 10000.0);
+        set_perspective(PI_HALF, 1, 0.01, 10000.0);
         traverse_modifier = 0.001;
         rotate_modifier = 1000.0;
     }

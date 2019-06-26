@@ -8,15 +8,15 @@
 
 
 namespace HiveEngine {
-    Context::Context(System* system) {
-        if(system){
+    Context::Context(System *system) {
+        if (system) {
             this->system = system;
             this->id = system->contexts.add(this);
         }
     }
 
     Context::~Context() {
-        if(system){
+        if (system) {
             system->contexts.remove(id);
         }
     }
@@ -25,16 +25,16 @@ namespace HiveEngine {
         bounding_boxes.resize(entity_mass.size());
         for (size_t i = 0; i < entity_mass.size(); ++i) {
             DAABB bbox;
-            if(entity_mass.get_state(i)){
+            if (entity_mass.get_state(i)) {
                 auto er = entity_radius.get(i);
                 auto ep = entity_position.get(i);
                 auto ev = entity_velocity.get(i) / (double) ticks_per_second;
-                bbox.min.x = (ep.x - er) + (ev.x < 0 ? ev.x: 0);
-                bbox.min.y = (ep.y - er) + (ev.y < 0 ? ev.y: 0);
-                bbox.min.z = (ep.z - er) + (ev.z < 0 ? ev.z: 0);
-                bbox.max.x = (ep.x + er) + (ev.x > 0 ? ev.x: 0);
-                bbox.max.y = (ep.y + er) + (ev.y > 0 ? ev.y: 0);
-                bbox.max.z = (ep.z + er) + (ev.z > 0 ? ev.z: 0);
+                bbox.min.x = (ep.x - er) + (ev.x < 0 ? ev.x : 0);
+                bbox.min.y = (ep.y - er) + (ev.y < 0 ? ev.y : 0);
+                bbox.min.z = (ep.z - er) + (ev.z < 0 ? ev.z : 0);
+                bbox.max.x = (ep.x + er) + (ev.x > 0 ? ev.x : 0);
+                bbox.max.y = (ep.y + er) + (ev.y > 0 ? ev.y : 0);
+                bbox.max.z = (ep.z + er) + (ev.z > 0 ? ev.z : 0);
             }
             bounding_boxes[i] = bbox;
         }
@@ -54,13 +54,13 @@ namespace HiveEngine {
     }
 
     void Context::remove_entity(size_t _id) {
-		if (entity_mass.get_state(_id)) {
-			entity_mass.set(_id, 0.0);
-			entity_radius.set(_id, 0.0);
-			entity_position.set(_id, { 0.0, 0.0, 0.0 });
-			entity_velocity.set(_id, { 0.0, 0.0, 0.0 });
-			entity_significance.set(_id, 0);
-		}
+        if (entity_mass.get_state(_id)) {
+            entity_mass.set(_id, 0.0);
+            entity_radius.set(_id, 0.0);
+            entity_position.set(_id, {0.0, 0.0, 0.0});
+            entity_velocity.set(_id, {0.0, 0.0, 0.0});
+            entity_significance.set(_id, 0);
+        }
 
         entity_mass.remove(_id);
         entity_radius.remove(_id);
@@ -74,7 +74,7 @@ namespace HiveEngine {
         auto pos = entity_position.get_ptr();
         auto vel = entity_velocity.get_ptr();
         for (size_t i = 0; i < entity_position.size(); ++i) {
-            pos[i] += vel[i] / (double)ticks_per_second;
+            pos[i] += vel[i] / (double) ticks_per_second;
         }
     }
 
@@ -84,21 +84,21 @@ namespace HiveEngine {
     }
 
     void System::check_colliding_contexts(size_t check_range) {
-        size_t expected_map_size = (contexts.size()*(contexts.size()+1))/2;
-        if(collision_map.size() != expected_map_size){
+        size_t expected_map_size = (contexts.size() * (contexts.size() + 1)) / 2;
+        if (collision_map.size() != expected_map_size) {
             collision_map = std::vector<int>(expected_map_size, 0);
             spdlog::debug("System collision resizing: " + std::to_string(contexts.size()) + " --> "
-            + std::to_string(expected_map_size));
+                          + std::to_string(expected_map_size));
             a_id = 0;
             b_id = 0;
             map_iter = 0;
         }
 
         for (size_t i = 0; i < check_range; ++i) {
-            if(b_id >= contexts.size()){
+            if (b_id >= contexts.size()) {
                 a_id++;
                 b_id = a_id;
-                if(map_iter >= collision_map.size()) {
+                if (map_iter >= collision_map.size()) {
                     a_id = 0;
                     b_id = 0;
                     map_iter = 0;
@@ -106,11 +106,11 @@ namespace HiveEngine {
                 }
             }
 
-            if(contexts.get_all(a_id).second && contexts.get_all(b_id).second){
-                Context* A = contexts.get_all(a_id).first;
-                Context* B = contexts.get_all(b_id).first;
-                if(A != nullptr && B != nullptr){
-                    if(glm::distance(A->position, B->position) < A->radius + B->radius){
+            if (contexts.get_all(a_id).second && contexts.get_all(b_id).second) {
+                Context *A = contexts.get_all(a_id).first;
+                Context *B = contexts.get_all(b_id).first;
+                if (A != nullptr && B != nullptr) {
+                    if (glm::distance(A->position, B->position) < A->radius + B->radius) {
                         collision_map[map_iter]++;
                     } else collision_map[map_iter] = 0;
                 } else collision_map[map_iter] = 0;
@@ -118,10 +118,10 @@ namespace HiveEngine {
 
 
             spdlog::debug("System collision checked "
-            + std::to_string(map_iter)
-            + ": " + std::to_string(a_id)
-            + " <=> " + std::to_string(b_id)
-            + " / " + std::to_string(contexts.size()));
+                          + std::to_string(map_iter)
+                          + ": " + std::to_string(a_id)
+                          + " <=> " + std::to_string(b_id)
+                          + " / " + std::to_string(contexts.size()));
 
             b_id++;
             map_iter++;
@@ -135,7 +135,7 @@ namespace HiveEngine {
     System::~System() {
         for (int i = 0; i < contexts.size(); ++i) {
             auto item = contexts.get_all(i);
-            if(item.second) delete item.first;
+            if (item.second) delete item.first;
         }
     }
 
@@ -143,57 +143,60 @@ namespace HiveEngine {
         size_t _a_id = 0;
         size_t _b_id = 0;
         for (size_t i = 0; i < collision_map.size(); ++i) {
-            if(_b_id >= contexts.size()){
+            if (_b_id >= contexts.size()) {
                 _a_id++;
                 _b_id = _a_id;
             }
-            if(collision_map[i]) process_collision(_a_id, _b_id, ticks_per_second);
+            if (collision_map[i]) process_collision(_a_id, _b_id, ticks_per_second);
             _b_id++;
         }
     }
 
-    inline bool check_deep_coll(glm::dvec3 p1, glm::dvec3 p2, glm::dvec3 v1, glm::dvec3 v2, double r1, double r2, double& t, unsigned ticks_per_second) {
+    // Thanks Gamasutra! https://www.gamasutra.com/view/feature/131424/pool_hall_lessons_fast_accurate_.php?page=2
+    inline bool
+    check_deep_coll(glm::dvec3 p1, glm::dvec3 p2, glm::dvec3 v1, glm::dvec3 v2, double r1, double r2, double &t,
+                    unsigned ticks_per_second) {
         v1 /= (double) ticks_per_second;
         v2 /= (double) ticks_per_second;
 
         glm::dvec3 C = p2 - p1;
-        double sum_radii = r1+r2;
+        double sum_radii = r1 + r2;
         double dist = glm::length(C) - sum_radii;
         glm::dvec3 move_vec = v1 - v2;
 
-        if(glm::length(move_vec) < dist) return false;
+        if (glm::length(move_vec) < dist) return false;
 
         glm::dvec3 N = glm::normalize(move_vec);
         double D = glm::dot(N, C);
 
-        if(D <= 0) return false;
+        if (D <= 0) return false;
 
         double length_c = glm::length(C);
-        double F = (length_c * length_c) - (D*D);
+        double F = (length_c * length_c) - (D * D);
 
         double sum_radii_squared = sum_radii * sum_radii;
 
-        if(F >= sum_radii_squared) return false;
+        if (F >= sum_radii_squared) return false;
 
         t = sum_radii_squared - F;
 
-        if(t < 0) return false;
+        if (t < 0) return false;
 
         double distance = D - glm::sqrt(t);
 
         double mag = glm::length(move_vec);
 
-        if(mag < distance) return false;
+        if (mag < distance) return false;
 
         return true;
     }
 
-    bool __context_item_collides(Context* ac, size_t a, Context* bc, size_t b, unsigned ticks_per_second){
-        if(ac == bc) {
-            if(a == b)return false;
+    bool __context_item_collides(Context *ac, size_t a, Context *bc, size_t b, unsigned ticks_per_second) {
+        if (ac == bc) {
+            if (a == b)return false;
         }
 
-        if(ac->entity_mass.get_state(a) && bc->entity_mass.get_state(b)){
+        if (ac->entity_mass.get_state(a) && bc->entity_mass.get_state(b)) {
             DAABB abox = ac->bounding_boxes[a];
             DAABB bbox = bc->bounding_boxes[b];
 
@@ -203,16 +206,16 @@ namespace HiveEngine {
 
             double t;
 
-            if(abox.collides(bbox)){
-                if(
+            if (abox.collides(bbox)) {
+                if (
                         check_deep_coll(
-                        ac->entity_position.get_all(a).first+ac->position, bc->entity_position.get_all(b).first+bc->position,
-                        ac->entity_velocity.get_all(a).first, bc->entity_velocity.get_all(b).first,
-                        ac->entity_radius.get_all(a).first, bc->entity_radius.get_all(b).first,
-                        t,
-                        ticks_per_second)
-                        )
-                {
+                                ac->entity_position.get_all(a).first + ac->position,
+                                bc->entity_position.get_all(b).first + bc->position,
+                                ac->entity_velocity.get_all(a).first, bc->entity_velocity.get_all(b).first,
+                                ac->entity_radius.get_all(a).first, bc->entity_radius.get_all(b).first,
+                                t,
+                                ticks_per_second)
+                        ) {
                     return true;
                 }
 
@@ -222,18 +225,18 @@ namespace HiveEngine {
     }
 
     void System::process_collision(size_t a, size_t b, unsigned ticks_per_second) {
-        if(!contexts.get_state(a))
+        if (!contexts.get_state(a))
             return;
-        if(!contexts.get_state(b))
+        if (!contexts.get_state(b))
             return;
 
-        Context* A = contexts.get_all(a).first;
-        Context* B = contexts.get_all(b).first;
-        if(A == nullptr) return;
-        if(B == nullptr) return;
+        Context *A = contexts.get_all(a).first;
+        Context *B = contexts.get_all(b).first;
+        if (A == nullptr) return;
+        if (B == nullptr) return;
 
         for (size_t i = 0; i < A->significant_entities.size(); ++i) {
-            if(A->significant_entities.get_state(i)) {
+            if (A->significant_entities.get_state(i)) {
                 size_t sig = A->significant_entities.get(i);
                 for (size_t j = 0; j < B->entity_mass.size(); ++j) {
                     if (__context_item_collides(A, sig, B, j, ticks_per_second)) {
@@ -246,7 +249,7 @@ namespace HiveEngine {
             }
         }
 
-        if(a != b){
+        if (a != b) {
             for (size_t i = 0; i < B->significant_entities.size(); ++i) {
                 if (B->significant_entities.get_state(i)) {
                     size_t sig = B->significant_entities.get(i);
@@ -266,7 +269,7 @@ namespace HiveEngine {
 
     void System::step(unsigned ticks_per_second) {
         for (size_t i = 0; i < contexts.size(); ++i) {
-            if(contexts.get_state(i)) {
+            if (contexts.get_state(i)) {
                 contexts.get_all(i).first->step(ticks_per_second);
             }
         }

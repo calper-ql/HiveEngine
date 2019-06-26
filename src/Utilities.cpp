@@ -9,9 +9,6 @@ namespace HiveEngine {
 
     glm::mat3 generate_rotation_matrix(char axis, float angle) {
         glm::mat3 mat(1.0);
-        //mat[0][0] = 1.0f; mat[0][1] = 0.0f; mat[0][2] = 0.0f;
-        //mat[1][0] = 0.0f; mat[1][1] = 1.0f; mat[1][2] = 0.0f;
-        //mat[2][0] = 0.0f; mat[2][1] = 0.0f; mat[2][2] = 1.0f;
 
         float c = cosf(angle);
         float s = sinf(angle);
