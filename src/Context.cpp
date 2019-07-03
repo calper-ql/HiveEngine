@@ -45,11 +45,14 @@ namespace HiveEngine {
         double radius = 0;
         glm::dvec3 position = {0.0, 0.0, 0.0};
         glm::dvec3 velocity = {0.0, 0.0, 0.0};
+        glm::mat3 rotation = glm::mat3(1.0);
         auto _id = entity_mass.add(mass);
         entity_radius.add(radius);
         entity_position.add(position);
         entity_velocity.add(velocity);
+        entity_rotation.add(rotation);
         entity_significance.add(0);
+        entity_repr.add(ContextRepresentation());
         return _id;
     }
 
@@ -60,6 +63,8 @@ namespace HiveEngine {
             entity_position.set(_id, {0.0, 0.0, 0.0});
             entity_velocity.set(_id, {0.0, 0.0, 0.0});
             entity_significance.set(_id, 0);
+            entity_rotation.set(_id, glm::mat3(1.0));
+            entity_repr.set(_id, ContextRepresentation());
         }
 
         entity_mass.remove(_id);
@@ -67,6 +72,8 @@ namespace HiveEngine {
         entity_position.remove(_id);
         entity_velocity.remove(_id);
         entity_significance.remove(_id);
+        entity_rotation.remove(_id);
+        entity_repr.remove(_id);
     }
 
 
@@ -243,6 +250,7 @@ namespace HiveEngine {
                         if (B->entity_mass.get_state(j))
                             if (B->entity_significance.get(j) == 0)
                                 B->remove_entity(j);
+                        A->entity_velocity.set(sig, A->entity_velocity.get(sig)* 0.997);
                     };
 
                 }
@@ -258,6 +266,7 @@ namespace HiveEngine {
                             if (A->entity_mass.get_state(j))
                                 if (A->entity_significance.get(j) == 0)
                                     A->remove_entity(j);
+                                B->entity_velocity.set(sig, B->entity_velocity.get(sig)* 0.997);
                         };
                     }
 

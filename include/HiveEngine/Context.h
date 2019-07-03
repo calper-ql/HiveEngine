@@ -18,6 +18,11 @@ namespace HiveEngine {
     class Context;
     class System;
 
+    struct ContextRepresentation {
+        std::string scene_id = "";
+        unsigned mesh_id = 0;
+    };
+
     class Context {
     public:
         System* system;
@@ -29,7 +34,9 @@ namespace HiveEngine {
         Buffer<double> entity_mass;
         Buffer<glm::dvec3> entity_position;
         Buffer<glm::dvec3> entity_velocity;
+        Buffer<glm::mat3> entity_rotation;
         Buffer<int> entity_significance;
+        Buffer<ContextRepresentation> entity_repr;
 
         std::vector<HiveEngine::DAABB> bounding_boxes;
 
@@ -55,7 +62,6 @@ namespace HiveEngine {
 
         System();
         ~System();
-
 
         std::vector<int> collision_map;
         size_t a_id = 0;

@@ -12,7 +12,7 @@
 #include <glm/gtc/matrix_access.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#include <GLFW/glfw3.h>
+#include <HiveEngine/Renderer/Context.h>
 
 namespace HiveEngine::Renderer {
     float get_window_ratio(GLFWwindow *window);
@@ -20,6 +20,10 @@ namespace HiveEngine::Renderer {
     struct CameraPackage {
         glm::mat4 view = {};
         int apply = 0;
+        float fov;
+
+        glm::mat3 view_rot;
+        glm::vec3 pos;
     };
 
     class Camera {
@@ -58,6 +62,8 @@ namespace HiveEngine::Renderer {
         void roll(float angle);
 
         CameraPackage get_package();
+
+        CameraPackage get_package_no_perspective();
 
         void get_user_input(GLFWwindow *window);
 

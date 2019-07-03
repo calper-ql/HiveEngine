@@ -54,11 +54,18 @@ namespace HiveEngine::Renderer {
     }
 
     CameraPackage Camera::get_package() {
+        CameraPackage cp = get_package_no_perspective();
+        cp.view = perspective * cp.view;
+        return cp;
+    }
+
+    CameraPackage Camera::get_package_no_perspective(){
         CameraPackage cp = {};
         cp.apply = apply;
-        //cp.position = position;
-        //cp.view = perspective * glm::translate(glm::mat4_cast(orientation), position);
-        cp.view = perspective * glm::translate(glm::mat4_cast(orientation), position);
+        cp.fov = fov;
+        cp.view = glm::translate(glm::mat4_cast(orientation), position);
+        cp.view_rot = glm::mat3_cast(orientation);
+        cp.pos = position;
         return cp;
     }
 
