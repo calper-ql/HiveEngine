@@ -146,9 +146,11 @@ namespace HiveEngine::Renderer {
                     rtx_context->setMissProgram(0, program_space[perspective.miss_program]);
                     rtx_context->setExceptionProgram(0, program_space[perspective.exception_program]);
 
-                    glm::vec3 pos = package.pos;
+                    glm::vec3 pos = glm::vec3(package.pos);
                     rtx_context["origin"]->setFloat(pos.x, pos.y, pos.z);
-                    rtx_context["view"]->setMatrix3x3fv(false, glm::value_ptr(glm::mat3(package.view_rot)));
+                    glm::mat4 view = package.view;
+
+                    rtx_context["view"]->setMatrix4x4fv(false, glm::value_ptr(view));
                     rtx_context["fov"]->setFloat(package.fov);
                     rtx_context["result_buffer"]->set(perspective.image);
 
@@ -167,10 +169,10 @@ namespace HiveEngine::Renderer {
 
                     float vertices[] = {
                             // Positions          // Colors           // Texture Coords
-                            1.0f,  1.0f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f, // Top Right
-                            1.0f, -1.0f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f, // Bottom Right
-                            -1.0f, -1.0f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f, // Bottom Left
-                            -1.0f,  1.0f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f  // Top Left
+                            -1.0f,  -1.0f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f, // Top Right
+                            -1.0f, 1.0f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f, // Bottom Right
+                            1.0f, 1.0f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f, // Bottom Left
+                            1.0f,  -1.0f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f  // Top Left
                     };
 
                     unsigned int indices[] = {
@@ -217,6 +219,8 @@ namespace HiveEngine::Renderer {
                 remove_perspective(i);
             }
         }
+
+        rtx_context->destroy();
 
         glDeleteVertexArrays(1, &VAO);
         glDeleteBuffers(1, &VBO);
@@ -355,15 +359,43 @@ namespace HiveEngine::Renderer {
         return geom_groups;
     }
 
-
-
-    optix::Group OptixDrawing::configure_scene(aiScene *scene) {
-        optix::Group root = rtx_context->createGroup();
-
-        return root;
+    size_t OptixDrawing::add_scene(aiScene *scene) {
+        auto i = scenes.size();
+        scenes.push_back(extract_geometry_groups(scene));
+        return i;
     }
 
-    void OptixDrawing::configure_node(aiNode *node, std::vector<optix::GeometryGroup> &ggs, optix::Group) {
+    optix::Transform OptixDrawing::configure_context(HiveEngine::Context* physics_context) {
+        optix::Transform transform = rtx_context->createTransform();
+        glm::mat4 mat = glm::mat4(physics_context->get_rotation());
+        glm::vec3 pos = glm::vec3(physics_context->get_position());
 
+        if(!physics_context->parent) pos = -pos;
+
+        mat[3] = glm::vec4(pos, 1.0);
+
+        spdlog::info("transform: " + dvec3_to_str(physics_context->get_position()));
+        optix::Matrix4x4 matrixPlane(glm::value_ptr(mat));
+        transform->setMatrix(true, matrixPlane.getData(), matrixPlane.inverse().getData());
+
+        optix::Group group = rtx_context->createGroup();
+
+        spdlog::info("Context: " + physics_context->name + " || repr count: " + std::to_string(physics_context->representations.size()));
+        for (ContextRepresentation repr: physics_context->representations) {
+            group->addChild(scenes[repr.scene_id][repr.mesh_id]);
+            spdlog::info("Adding repr: " + std::to_string(repr.scene_id) + " -> " + std::to_string(repr.mesh_id));
+        }
+
+        for (int i = 0; i < physics_context->entity_mass.size(); ++i) {
+            if(physics_context->contexts.get_state(i) && physics_context->contexts.get(i) != nullptr){
+                group->addChild(configure_context(physics_context->contexts.get(i)));
+            }
+        }
+
+        group->setAcceleration(rtx_context->createAcceleration("Trbvh"));
+        group->getAcceleration()->markDirty();
+        transform->setChild(group);
+
+        return transform;
     }
 }

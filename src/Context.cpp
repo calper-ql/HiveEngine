@@ -19,6 +19,10 @@ namespace HiveEngine {
         if (system) {
             system->contexts.remove(id);
         }
+
+        for (int i = 0; i < contexts.size(); ++i) {
+            delete contexts.get(i);
+        }
     }
 
     void Context::calculate_bounding_boxes(unsigned ticks_per_second) {
@@ -44,15 +48,13 @@ namespace HiveEngine {
         double mass = 0;
         double radius = 0;
         glm::dvec3 position = {0.0, 0.0, 0.0};
-        glm::dvec3 velocity = {0.0, 0.0, 0.0};
-        glm::mat3 rotation = glm::mat3(1.0);
         auto _id = entity_mass.add(mass);
         entity_radius.add(radius);
         entity_position.add(position);
-        entity_velocity.add(velocity);
-        entity_rotation.add(rotation);
+        entity_velocity.add(position);
         entity_significance.add(0);
-        entity_repr.add(ContextRepresentation());
+        entity_rotation.add(glm::mat3(1.0f));
+        contexts.add(nullptr);
         return _id;
     }
 
@@ -63,8 +65,9 @@ namespace HiveEngine {
             entity_position.set(_id, {0.0, 0.0, 0.0});
             entity_velocity.set(_id, {0.0, 0.0, 0.0});
             entity_significance.set(_id, 0);
-            entity_rotation.set(_id, glm::mat3(1.0));
-            entity_repr.set(_id, ContextRepresentation());
+            entity_rotation.set(_id, glm::mat3(1.0f));
+            delete contexts.get(_id);
+            contexts.set(_id, nullptr);
         }
 
         entity_mass.remove(_id);
@@ -73,7 +76,7 @@ namespace HiveEngine {
         entity_velocity.remove(_id);
         entity_significance.remove(_id);
         entity_rotation.remove(_id);
-        entity_repr.remove(_id);
+        contexts.remove(_id);
     }
 
 
@@ -88,6 +91,86 @@ namespace HiveEngine {
     void Context::step(unsigned ticks_per_second) {
         calculate_positions(ticks_per_second);
         calculate_bounding_boxes(ticks_per_second);
+    }
+
+    double Context::load_ai_node(aiScene* scene, aiNode *root, int scene_id) {
+        auto b_id = this->new_entity();
+        glm::mat4 transform = ai_matrix_to_glm(&root->mTransformation);
+
+        glm::mat3 rot = glm::mat3(transform);
+        glm::dvec3 pos = glm::dvec3(transform[3]);
+
+        Context* cntx = new Context(this);
+
+        cntx->set_position(pos);
+        cntx->set_rotation(rot);
+        cntx->set_significance(2);
+
+        double r = ai_get_node_radius(scene, root);
+        set_radius(r);
+
+        cntx->name = std::string(root->mName.C_Str());
+
+        for (int i = 0; i < root->mNumMeshes; ++i) {
+            ContextRepresentation cr;
+            cr.scene_id = scene_id;
+            cr.mesh_id = root->mMeshes[i];
+            cntx->representations.push_back(cr);
+        }
+
+        for (int i = 0; i < root->mNumChildren; ++i) {
+            double r2 = cntx->load_ai_node(scene, root->mChildren[i], scene_id);
+
+            glm::mat4 t2 = ai_matrix_to_glm(&root->mChildren[i]->mTransformation);
+            glm::dvec3 tp = glm::dvec3(transform[3]);
+
+            if(glm::length(tp)+r2 > r) {
+                r = glm::length(tp)+r2;
+                set_radius(r);
+            }
+        }
+
+        return r;
+    }
+
+    void Context::set_position(glm::dvec3 new_pos) {
+        this->position = new_pos;
+        if(parent) parent->entity_position.set(id, new_pos);
+    }
+
+    void Context::set_rotation(glm::mat3 new_rot) {
+        this->rotation = new_rot;
+        if(parent) parent->entity_rotation.set(id, new_rot);
+    }
+
+    void Context::set_radius(double radius) {
+        this->radius = radius;
+        if(parent) parent->entity_radius.set(id, radius);
+    }
+
+    void Context::set_significance(int sig) {
+        if(parent) parent->entity_significance.set(id, sig);
+    }
+
+    Context::Context(Context *parent) {
+        if(parent) {
+            this->parent = parent;
+            this->id = parent->new_entity();
+            parent->contexts.set(this->id, this);
+        }
+
+    }
+
+    glm::dvec3 Context::get_position() {
+        return position;
+    }
+
+    glm::mat3 Context::get_rotation() {
+        return rotation;
+    }
+
+    double Context::get_radius() {
+        return radius;
     }
 
     void System::check_colliding_contexts(size_t check_range) {
@@ -117,7 +200,7 @@ namespace HiveEngine {
                 Context *A = contexts.get_all(a_id).first;
                 Context *B = contexts.get_all(b_id).first;
                 if (A != nullptr && B != nullptr) {
-                    if (glm::distance(A->position, B->position) < A->radius + B->radius) {
+                    if (glm::distance(A->get_position(), B->get_position()) < A->get_radius() + B->get_radius()) {
                         collision_map[map_iter]++;
                     } else collision_map[map_iter] = 0;
                 } else collision_map[map_iter] = 0;
@@ -207,7 +290,7 @@ namespace HiveEngine {
             DAABB abox = ac->bounding_boxes[a];
             DAABB bbox = bc->bounding_boxes[b];
 
-            glm::dvec3 diff = bc->position - ac->position;
+            glm::dvec3 diff = bc->get_position() - ac->get_position();
             bbox.min += diff;
             bbox.max += diff;
 
@@ -216,8 +299,8 @@ namespace HiveEngine {
             if (abox.collides(bbox)) {
                 if (
                         check_deep_coll(
-                                ac->entity_position.get_all(a).first + ac->position,
-                                bc->entity_position.get_all(b).first + bc->position,
+                                ac->entity_position.get_all(a).first + ac->get_position(),
+                                bc->entity_position.get_all(b).first + bc->get_position(),
                                 ac->entity_velocity.get_all(a).first, bc->entity_velocity.get_all(b).first,
                                 ac->entity_radius.get_all(a).first, bc->entity_radius.get_all(b).first,
                                 t,
@@ -248,9 +331,11 @@ namespace HiveEngine {
                 for (size_t j = 0; j < B->entity_mass.size(); ++j) {
                     if (__context_item_collides(A, sig, B, j, ticks_per_second)) {
                         if (B->entity_mass.get_state(j))
-                            if (B->entity_significance.get(j) == 0)
+                            if (B->entity_significance.get(j) == 0){
                                 B->remove_entity(j);
-                        A->entity_velocity.set(sig, A->entity_velocity.get(sig)* 0.997);
+                                A->entity_velocity.set(sig, A->entity_velocity.get(sig)* 0.997);
+                            }
+
                     };
 
                 }
@@ -264,9 +349,11 @@ namespace HiveEngine {
                     for (size_t j = 0; j < A->entity_mass.size(); ++j) {
                         if (__context_item_collides(B, sig, A, j, ticks_per_second)) {
                             if (A->entity_mass.get_state(j))
-                                if (A->entity_significance.get(j) == 0)
+                                if (A->entity_significance.get(j) == 0){
                                     A->remove_entity(j);
-                                B->entity_velocity.set(sig, B->entity_velocity.get(sig)* 0.997);
+                                    B->entity_velocity.set(sig, B->entity_velocity.get(sig)* 0.997);
+                                }
+
                         };
                     }
 

@@ -21,6 +21,8 @@
 #include <assimp/scene.h>           // Output data structure
 #include <assimp/postprocess.h>     // Post processing flags
 
+#include <HiveEngine/Context.h>
+
 
 namespace HiveEngine::Renderer {
 
@@ -56,12 +58,11 @@ namespace HiveEngine::Renderer {
 
         GLuint gl_tex_id;
 
-        void configure_node(aiNode* node, std::vector<optix::GeometryGroup>& ggs, optix::Group group);
-
     public:
 
         optix::Context rtx_context;
         optix::Group root_node;
+        std::vector<std::vector<optix::GeometryGroup>> scenes;
 
         std::map<std::string, optix::Program> program_space;
 
@@ -76,7 +77,9 @@ namespace HiveEngine::Renderer {
         void remove_perspective(size_t idx);
 
         std::vector<optix::GeometryGroup> extract_geometry_groups(aiScene* scene);
-        optix::Group configure_scene(aiScene* scene);
+        size_t add_scene(aiScene* scene);
+
+        optix::Transform configure_context(HiveEngine::Context* physics_context);
     };
 }
 

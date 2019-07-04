@@ -40,6 +40,15 @@ public:
     }
 };
 
+void print_assimp_node(aiNode* node, int depth) {
+    std::string dstr = "";
+    for (int i = 0; i < depth; ++i) dstr += "-";
+    std::cout << dstr << node->mName.C_Str() << " " << node->mNumMeshes << std::endl;
+    for (int j = 0; j < node->mNumChildren; ++j) {
+        print_assimp_node(node->mChildren[j], depth+1);
+    }
+}
+
 int main(int argc, char *argv[]) {
     std::cout << "HiveEngine version: " << HiveEngine::get_major_version()
               << "." << HiveEngine::get_minor_version() << std::endl;
@@ -50,10 +59,10 @@ int main(int argc, char *argv[]) {
     HiveEngine::Context c1(&sys);
     HiveEngine::Context c2(&sys);
 
-    c1.position = {-5.0, 0.0, 0.0};
-    c2.position = {10.0, 0.0, 0.0};
-    c1.radius = 30.0;
-    c2.radius = 5.0;
+    c1.set_position({-5.0, -0.4, -0.1});
+    c2.set_position({0.0, 0.0, 0.0});
+    c1.set_radius(30.0);
+    c2.set_radius(50.0);
 
     for (int j = 0; j < 10000; ++j) {
         RandomEntity(&c1, re);
@@ -64,15 +73,14 @@ int main(int argc, char *argv[]) {
     }
 
     Assimp::Importer importer;
-    // And have it read the given file with some example postprocessing
-    // Usually - if speed is not the most important aspect for you - you'll
-    // propably to request more postprocessing than we do in this example.
     aiScene* scene = (aiScene*)importer.ReadFile( "../data/kinetic_missile/kinetic_missile.dae", aiProcess_Triangulate);
 
     if( !scene){
         spdlog::error("Couldn't load scene");
         HiveEngine::process_error();
     }
+
+    print_assimp_node(scene->mRootNode, 0);
 
     auto id = c1.new_entity();
     c1.entity_significance.set(id, 1);
@@ -100,7 +108,7 @@ int main(int argc, char *argv[]) {
 
 
     HiveEngine::Renderer::Camera camera;
-    camera.set_position({0.0, 0.0, -3.30});
+    camera.set_position({0.0, 0.0, -10.30});
 
     HiveEngine::Renderer::Context renderer_context(true);
     renderer_context.init_window({1400, 1000}, true);
@@ -109,19 +117,9 @@ int main(int argc, char *argv[]) {
     HiveEngine::Renderer::OptixDrawing optix_drawing(&renderer_context, "../");
     optix_drawing.add_perspective(&camera, {100, 100}, true, "color_raygen", "miss", "exception");
 
-    auto geo_groups = optix_drawing.extract_geometry_groups(scene);
-    auto transform = optix_drawing.rtx_context->createTransform();
-
-    transform->setChild(geo_groups[93]);
-    glm::mat3 rot(1.0);
-
-    auto pos = glm::vec3(0.0, 0.0, 0.0);
-    glm::mat4 mat = glm::mat4(1.0);
-    mat[3] = glm::vec4(pos, 1.0);
-    optix::Matrix4x4 matrixPlane(glm::value_ptr(mat));
-    transform->setMatrix(true, matrixPlane.getData(), matrixPlane.inverse().getData());
-
-    optix_drawing.root_node->addChild(transform);
+    size_t scene_id = optix_drawing.add_scene(scene);
+    c1.load_ai_node(scene, scene->mRootNode, scene_id);
+    optix_drawing.root_node->addChild(optix_drawing.configure_context(&c1));
 
     HiveEngine::Renderer::AABBDrawing aabb_drawing_1(&renderer_context);
     HiveEngine::Renderer::AABBDrawing aabb_drawing_2(&renderer_context);
@@ -138,11 +136,11 @@ int main(int argc, char *argv[]) {
 
         aabb_drawing_1.bbox = c1.bounding_boxes;
         aabb_drawing_1.significance = c1.entity_significance.get_data();
-        aabb_drawing_1.offset = c1.position;
+        aabb_drawing_1.offset = c1.get_position();
 
         aabb_drawing_2.bbox = c2.bounding_boxes;
         aabb_drawing_2.significance = c2.entity_significance.get_data();
-        aabb_drawing_2.offset = c2.position;
+        aabb_drawing_2.offset = c2.get_position();
 
         camera.get_user_movement(renderer_context.get_window());
         camera.get_user_input(renderer_context.get_window());

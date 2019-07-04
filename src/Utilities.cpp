@@ -34,9 +34,6 @@ namespace HiveEngine {
     }
 
 
-
-
-
     std::string dvec3_to_str(glm::dvec3 value) {
         std::string str;
         str.append("(");
@@ -47,6 +44,42 @@ namespace HiveEngine {
         str.append(std::to_string(value.z));
         str.append(")");
         return str;
+    }
+
+    glm::mat4 ai_matrix_to_glm(aiMatrix4x4 *from) {
+
+        glm::mat4 to;
+        to[0][0] = (float) from->a1;
+        to[0][1] = (float) from->b1;
+        to[0][2] = (float) from->c1;
+        to[0][3] = (float) from->d1;
+        to[1][0] = (float) from->a2;
+        to[1][1] = (float) from->b2;
+        to[1][2] = (float) from->c2;
+        to[1][3] = (float) from->d2;
+        to[2][0] = (float) from->a3;
+        to[2][1] = (float) from->b3;
+        to[2][2] = (float) from->c3;
+        to[2][3] = (float) from->d3;
+        to[3][0] = (float) from->a4;
+        to[3][1] = (float) from->b4;
+        to[3][2] = (float) from->c4;
+        to[3][3] = (float) from->d4;
+        return to;
+
+    }
+
+    double ai_get_node_radius(aiScene* scene, aiNode *node) {
+        double radius = 0.0;
+
+        for (int i = 0; i < node->mNumMeshes; ++i) {
+            for (int j = 0; j < scene->mMeshes[node->mMeshes[i]]->mNumVertices; ++j) {
+                double n_r = scene->mMeshes[node->mMeshes[i]]->mVertices[j].Length();
+                if(n_r > radius) radius = n_r;
+            }
+        }
+
+        return radius;
     }
 
 }
