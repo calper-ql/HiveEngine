@@ -68,6 +68,8 @@ namespace HiveEngine {
         DAABB();
 
         bool collides(DAABB other);
+        void add(glm::dvec3 point);
+        void combine(DAABB other);
 
     };
 

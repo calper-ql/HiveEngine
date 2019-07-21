@@ -3,6 +3,7 @@
 //
 
 #include <HiveEngine/Renderer/LineDrawing.h>
+#include <HiveEngine/Utilities.h>
 
 namespace HiveEngine::Renderer {
 
@@ -66,11 +67,14 @@ namespace HiveEngine::Renderer {
 
         glLineWidth(line_width);
 
-        unsigned int view_apply_loc = glGetUniformLocation(program, "view_apply");
+        int view_apply_loc = glGetUniformLocation(program, "view_apply");
         glUniform1i(view_apply_loc, cp.apply);
 
-        unsigned int view_loc = glGetUniformLocation(program, "view");
+        int view_loc = glGetUniformLocation(program, "view");
         glUniformMatrix4fv(view_loc, 1, GL_FALSE, glm::value_ptr(cp.view));
+
+        int offset_loc = glGetUniformLocation(program, "offset");
+        glUniform3f(offset_loc, offset.x, offset.y, offset.z);
 
         glDrawArrays(GL_LINES, 0, lines.size()*2);
 

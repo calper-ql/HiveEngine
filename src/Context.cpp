@@ -8,215 +8,254 @@
 
 
 namespace HiveEngine {
-    Context::Context(System *system) {
-        if (system) {
-            this->system = system;
-            this->id = system->contexts.add(this);
+
+    Node::Node(Context *context, Node* parent) {
+        this->context = context;
+        this->physical_id = context->node_physical_data.add(NodePhysicalData());
+
+        context->node_level.add(0);
+
+        this->bbox_id = context->node_bounding_box.add(DAABB());
+        this->parent = parent;
+        if(parent){
+            parent_id = parent->children.add(this);
+        } else {
+            parent_id = context->root_nodes.add(this);
+        }
+
+        calculate_current_global();
+        calculate_level();
+    }
+
+    Node::~Node() {
+        erase_children();
+        if(parent) parent->children.remove(parent_id);
+        else context->root_nodes.remove(parent_id);
+        context->node_physical_data.remove(physical_id);
+        context->node_level.remove(physical_id);
+        context->node_bounding_box.set(bbox_id, DAABB());
+        context->node_bounding_box.remove(bbox_id);
+        remove_representation();
+    }
+
+    void Node::erase_children() {
+        for (int i = 0; i < children.size(); ++i) {
+            if(children.get_state(i)) delete children.get(i);
         }
     }
 
-    Context::~Context() {
-        if (system) {
-            system->contexts.remove(id);
-        }
-
-        for (int i = 0; i < contexts.size(); ++i) {
-            delete contexts.get(i);
-        }
+    void Node::set_representation(NodeRepresentation* node_representation){
+        if(representation) delete representation;
+        this->representation = node_representation;
     }
 
-    void Context::calculate_bounding_boxes(unsigned ticks_per_second) {
-        bounding_boxes.resize(entity_mass.size());
-        for (size_t i = 0; i < entity_mass.size(); ++i) {
-            DAABB bbox;
-            if (entity_mass.get_state(i)) {
-                auto er = entity_radius.get(i);
-                auto ep = entity_position.get(i);
-                auto ev = entity_velocity.get(i) / (double) ticks_per_second;
-                bbox.min.x = (ep.x - er) + (ev.x < 0 ? ev.x : 0);
-                bbox.min.y = (ep.y - er) + (ev.y < 0 ? ev.y : 0);
-                bbox.min.z = (ep.z - er) + (ev.z < 0 ? ev.z : 0);
-                bbox.max.x = (ep.x + er) + (ev.x > 0 ? ev.x : 0);
-                bbox.max.y = (ep.y + er) + (ev.y > 0 ? ev.y : 0);
-                bbox.max.z = (ep.z + er) + (ev.z > 0 ? ev.z : 0);
+    void Node::remove_representation() {
+        delete representation;
+        representation = nullptr;
+    }
+
+    void Node::update_representation() {
+        if(!representation) {
+            if(context->representation){
+                set_representation(context->representation->create_node_representation(scene_id, mesh_id));
             }
-            bounding_boxes[i] = bbox;
+        }
+
+        if(representation){
+            representation->update_global_orientation(physical_data()->global_position,
+                                                      physical_data()->global_rotation);
+            representation->update_orientation(physical_data()->position,
+                                                      physical_data()->rotation);
+            for (int i = 0; i < children.size(); ++i) {
+                if(children.get_state(i)) children.get(i)->update_representation();
+            }
         }
     }
 
-    size_t Context::new_entity() {
-        double mass = 0;
-        double radius = 0;
-        glm::dvec3 position = {0.0, 0.0, 0.0};
-        auto _id = entity_mass.add(mass);
-        entity_radius.add(radius);
-        entity_position.add(position);
-        entity_velocity.add(position);
-        entity_significance.add(0);
-        entity_rotation.add(glm::mat3(1.0f));
-        contexts.add(nullptr);
-        return _id;
-    }
+    void Node::calculate_next_step(unsigned ticks_per_second) {
+        physical_data()->next_position = physical_data()->position + (physical_data()->velocity / (double) ticks_per_second);
+        glm::quat rot_quat = glm::pow(glm::quat_cast(physical_data()->angular_velocity), 1.0f / (float) ticks_per_second);
+        physical_data()->next_rotation = physical_data()->rotation * glm::mat3_cast(rot_quat);
+        calculate_next_global();
 
-    void Context::remove_entity(size_t _id) {
-        if (entity_mass.get_state(_id)) {
-            entity_mass.set(_id, 0.0);
-            entity_radius.set(_id, 0.0);
-            entity_position.set(_id, {0.0, 0.0, 0.0});
-            entity_velocity.set(_id, {0.0, 0.0, 0.0});
-            entity_significance.set(_id, 0);
-            entity_rotation.set(_id, glm::mat3(1.0f));
-            delete contexts.get(_id);
-            contexts.set(_id, nullptr);
-        }
-
-        entity_mass.remove(_id);
-        entity_radius.remove(_id);
-        entity_position.remove(_id);
-        entity_velocity.remove(_id);
-        entity_significance.remove(_id);
-        entity_rotation.remove(_id);
-        contexts.remove(_id);
-    }
-
-
-    void Context::calculate_positions(unsigned ticks_per_second) {
-        auto pos = entity_position.get_ptr();
-        auto vel = entity_velocity.get_ptr();
-        for (size_t i = 0; i < entity_position.size(); ++i) {
-            pos[i] += vel[i] / (double) ticks_per_second;
+        for (int i = 0; i < children.size(); ++i) {
+            if(children.get_state(i)) children.get(i)->calculate_next_step(ticks_per_second);
         }
     }
 
-    void Context::step(unsigned ticks_per_second) {
-        calculate_positions(ticks_per_second);
-        calculate_bounding_boxes(ticks_per_second);
+    void Node::induce_next_step() {
+        physical_data()->position = physical_data()->next_position;
+        physical_data()->rotation = physical_data()->next_rotation;
+        physical_data()->global_position = physical_data()->next_global_position;
+        physical_data()->global_rotation = physical_data()->next_global_rotation;
+        for (int i = 0; i < children.size(); ++i) {
+            if(children.get_state(i)) children.get(i)->induce_next_step();
+        }
     }
 
-    double Context::load_ai_node(aiScene* scene, aiNode *root, int scene_id) {
-        auto b_id = this->new_entity();
-        glm::mat4 transform = ai_matrix_to_glm(&root->mTransformation);
+    void Node::calculate_current_global() {
+        if(parent){
+            physical_data()->global_rotation = glm::dmat3(parent->physical_data()->global_rotation) * glm::dmat3(physical_data()->rotation);
+            physical_data()->global_position = (glm::dmat3(parent->physical_data()->global_rotation) * physical_data()->position) + parent->physical_data()->global_position;
+        } else {
+            physical_data()->global_position = physical_data()->position;
+            physical_data()->global_rotation = physical_data()->rotation;
+        }
+    }
+
+    void Node::calculate_next_global() {
+        if(parent){
+            physical_data()->next_global_rotation = parent->physical_data()->next_global_rotation * physical_data()->next_rotation;
+            physical_data()->next_global_position = (glm::dmat3(parent->physical_data()->next_global_rotation) * physical_data()->next_position) + parent->physical_data()->next_global_position;
+        } else {
+            physical_data()->next_global_position = physical_data()->next_position;
+            physical_data()->next_global_rotation = physical_data()->next_rotation;
+        }
+    }
+
+    DAABB Node::calculate_bounding_box() {
+        DAABB bbox;
+        auto er = physical_data()->radius;
+        auto ep = physical_data()->global_position;
+        auto ev = physical_data()->next_global_position - physical_data()->global_position;
+        bbox.min.x = (ep.x - er) + (ev.x < 0 ? ev.x : 0);
+        bbox.min.y = (ep.y - er) + (ev.y < 0 ? ev.y : 0);
+        bbox.min.z = (ep.z - er) + (ev.z < 0 ? ev.z : 0);
+        bbox.max.x = (ep.x + er) + (ev.x > 0 ? ev.x : 0);
+        bbox.max.y = (ep.y + er) + (ev.y > 0 ? ev.y : 0);
+        bbox.max.z = (ep.z + er) + (ev.z > 0 ? ev.z : 0);
+
+        for (int i = 0; i < children.size(); ++i) {
+            if(children.get_state(i)) {
+                bbox.combine(children.get(i)->calculate_bounding_box());
+            }
+        }
+
+        context->node_bounding_box.set(bbox_id, bbox);
+        return bbox;
+    }
+
+    NodePhysicalData *Node::physical_data() {
+        return &(context->node_physical_data.get_data()[physical_id]);
+    }
+
+    unsigned Node::get_level() {
+        return context->node_level.get(physical_id);
+    }
+
+    void Node::calculate_level() {
+        if(parent) context->node_level.set(physical_id, parent->get_level() + 1);
+        else context->node_level.set(physical_id, 0);
+    }
+
+    void Node::add_children(Node *child) {
+        child->set_parent(this);
+    }
+
+    void Node::set_parent(Node *parent) {
+        if(this->parent){
+            this->parent->children.remove(parent_id);
+        } else {
+            context->root_nodes.remove(parent_id);
+        }
+
+        this->parent = parent;
+        if(this->parent){
+            parent_id = this->parent->children.add(this);
+        } else {
+            parent_id = context->root_nodes.add(this);
+        }
+
+        calculate_level();
+    }
+
+    void Node::print() {
+        std::string  tk = "+";
+        for (int i = 0; i < get_level(); ++i) {
+            tk += "-";
+        }
+        std::cout << tk << name << std::endl;
+        for (int j = 0; j < children.size(); ++j) {
+            if(children.get_state(j)){
+                children.get(j)->print();
+            }
+        }
+    }
+
+    Node* Context::load_ai_node(aiScene *scene, aiNode *root, int scene_id, Node* parent) {
+        glm::mat4 transform = ai_matrix_to_glm(root->mTransformation);
 
         glm::mat3 rot = glm::mat3(transform);
         glm::dvec3 pos = glm::dvec3(transform[3]);
 
-        Context* cntx = new Context(this);
+        Node* cntx = new Node(this, parent);
 
-        cntx->set_position(pos);
-        cntx->set_rotation(rot);
-        cntx->set_significance(2);
+        cntx->physical_data()->position = pos;
+        cntx->physical_data()->rotation = rot;
+        cntx->calculate_current_global();
 
         double r = ai_get_node_radius(scene, root);
-        set_radius(r);
+        cntx->physical_data()->radius = r;
 
         cntx->name = std::string(root->mName.C_Str());
 
+        std::cout << cntx->name << std::endl;
+        std::cout << mat3_to_str(cntx->physical_data()->rotation) << std::endl;
+        std::cout << "---" << std::endl;
+        std::cout << mat3_to_str(cntx->physical_data()->global_rotation) << std::endl;
+
         for (int i = 0; i < root->mNumMeshes; ++i) {
-            ContextRepresentation cr;
-            cr.scene_id = scene_id;
-            cr.mesh_id = root->mMeshes[i];
-            cntx->representations.push_back(cr);
+            cntx->scene_id = scene_id;
+            cntx->mesh_id = root->mMeshes[i];
         }
 
         for (int i = 0; i < root->mNumChildren; ++i) {
-            double r2 = cntx->load_ai_node(scene, root->mChildren[i], scene_id);
+            Node* child = load_ai_node(scene, root->mChildren[i], scene_id, cntx);
+        }
 
-            glm::mat4 t2 = ai_matrix_to_glm(&root->mChildren[i]->mTransformation);
-            glm::dvec3 tp = glm::dvec3(transform[3]);
+        return cntx;
+    }
 
-            if(glm::length(tp)+r2 > r) {
-                r = glm::length(tp)+r2;
-                set_radius(r);
+    Context::Context(System *system) {
+        this->system = system;
+        this->id = system->contexts.add(this);
+    }
+
+    Context::~Context() {
+        this->system->contexts.remove(id);
+        for (int i = 0; i < root_nodes.size(); ++i) {
+            if(root_nodes.get_state(i)) delete root_nodes.get(i);
+        }
+        if(representation) delete representation;
+    }
+
+    void Context::calculate_next_step(unsigned ticks_per_second) {
+        for (int i = 0; i < root_nodes.size(); ++i) {
+            if(root_nodes.get_state(i)) root_nodes.get(i)->calculate_next_step(ticks_per_second);
+        }
+    }
+
+    void Context::calculate_bounding_boxes() {
+        for (int i = 0; i < root_nodes.size(); ++i) {
+            if(root_nodes.get_state(i)) root_nodes.get(i)->calculate_bounding_box();
+        }
+    }
+
+    void Context::induce_next_step() {
+        for (int i = 0; i < root_nodes.size(); ++i) {
+            if(root_nodes.get_state(i)) root_nodes.get(i)->induce_next_step();
+        }
+    }
+
+    void Context::update_representation() {
+        if(representation){
+            representation->update_position(position);
+            for (int i = 0; i < root_nodes.size(); ++i) {
+                if(root_nodes.get_state(i)) root_nodes.get(i)->update_representation();
             }
         }
-
-        return r;
     }
 
-    void Context::set_position(glm::dvec3 new_pos) {
-        this->position = new_pos;
-        if(parent) parent->entity_position.set(id, new_pos);
-    }
-
-    void Context::set_rotation(glm::mat3 new_rot) {
-        this->rotation = new_rot;
-        if(parent) parent->entity_rotation.set(id, new_rot);
-    }
-
-    void Context::set_radius(double radius) {
-        this->radius = radius;
-        if(parent) parent->entity_radius.set(id, radius);
-    }
-
-    void Context::set_significance(int sig) {
-        if(parent) parent->entity_significance.set(id, sig);
-    }
-
-    Context::Context(Context *parent) {
-        if(parent) {
-            this->parent = parent;
-            this->id = parent->new_entity();
-            parent->contexts.set(this->id, this);
-        }
-
-    }
-
-    glm::dvec3 Context::get_position() {
-        return position;
-    }
-
-    glm::mat3 Context::get_rotation() {
-        return rotation;
-    }
-
-    double Context::get_radius() {
-        return radius;
-    }
-
-    void System::check_colliding_contexts(size_t check_range) {
-        size_t expected_map_size = (contexts.size() * (contexts.size() + 1)) / 2;
-        if (collision_map.size() != expected_map_size) {
-            collision_map = std::vector<int>(expected_map_size, 0);
-            spdlog::debug("System collision resizing: " + std::to_string(contexts.size()) + " --> "
-                          + std::to_string(expected_map_size));
-            a_id = 0;
-            b_id = 0;
-            map_iter = 0;
-        }
-
-        for (size_t i = 0; i < check_range; ++i) {
-            if (b_id >= contexts.size()) {
-                a_id++;
-                b_id = a_id;
-                if (map_iter >= collision_map.size()) {
-                    a_id = 0;
-                    b_id = 0;
-                    map_iter = 0;
-                    spdlog::debug("System collision reset!");
-                }
-            }
-
-            if (contexts.get_all(a_id).second && contexts.get_all(b_id).second) {
-                Context *A = contexts.get_all(a_id).first;
-                Context *B = contexts.get_all(b_id).first;
-                if (A != nullptr && B != nullptr) {
-                    if (glm::distance(A->get_position(), B->get_position()) < A->get_radius() + B->get_radius()) {
-                        collision_map[map_iter]++;
-                    } else collision_map[map_iter] = 0;
-                } else collision_map[map_iter] = 0;
-            } else collision_map[map_iter] = 0;
-
-
-            spdlog::debug("System collision checked "
-                          + std::to_string(map_iter)
-                          + ": " + std::to_string(a_id)
-                          + " <=> " + std::to_string(b_id)
-                          + " / " + std::to_string(contexts.size()));
-
-            b_id++;
-            map_iter++;
-        }
-    }
 
     System::System() {
 
@@ -229,147 +268,16 @@ namespace HiveEngine {
         }
     }
 
-    void System::process_collision_map(unsigned ticks_per_second) {
-        size_t _a_id = 0;
-        size_t _b_id = 0;
-        for (size_t i = 0; i < collision_map.size(); ++i) {
-            if (_b_id >= contexts.size()) {
-                _a_id++;
-                _b_id = _a_id;
-            }
-            if (collision_map[i]) process_collision(_a_id, _b_id, ticks_per_second);
-            _b_id++;
-        }
+    NodeRepresentation::NodeRepresentation(int scene_id, int mesh_id) {
+        this->scene_id = scene_id;
+        this->mesh_id = mesh_id;
     }
 
-    // Thanks Gamasutra! https://www.gamasutra.com/view/feature/131424/pool_hall_lessons_fast_accurate_.php?page=2
-    inline bool
-    check_deep_coll(glm::dvec3 p1, glm::dvec3 p2, glm::dvec3 v1, glm::dvec3 v2, double r1, double r2, double &t,
-                    unsigned ticks_per_second) {
-        v1 /= (double) ticks_per_second;
-        v2 /= (double) ticks_per_second;
-
-        glm::dvec3 C = p2 - p1;
-        double sum_radii = r1 + r2;
-        double dist = glm::length(C) - sum_radii;
-        glm::dvec3 move_vec = v1 - v2;
-
-        if (glm::length(move_vec) < dist) return false;
-
-        glm::dvec3 N = glm::normalize(move_vec);
-        double D = glm::dot(N, C);
-
-        if (D <= 0) return false;
-
-        double length_c = glm::length(C);
-        double F = (length_c * length_c) - (D * D);
-
-        double sum_radii_squared = sum_radii * sum_radii;
-
-        if (F >= sum_radii_squared) return false;
-
-        t = sum_radii_squared - F;
-
-        if (t < 0) return false;
-
-        double distance = D - glm::sqrt(t);
-
-        double mag = glm::length(move_vec);
-
-        if (mag < distance) return false;
-
-        return true;
+    int NodeRepresentation::get_scene_id() {
+        return scene_id;
     }
 
-    bool __context_item_collides(Context *ac, size_t a, Context *bc, size_t b, unsigned ticks_per_second) {
-        if (ac == bc) {
-            if (a == b)return false;
-        }
-
-        if (ac->entity_mass.get_state(a) && bc->entity_mass.get_state(b)) {
-            DAABB abox = ac->bounding_boxes[a];
-            DAABB bbox = bc->bounding_boxes[b];
-
-            glm::dvec3 diff = bc->get_position() - ac->get_position();
-            bbox.min += diff;
-            bbox.max += diff;
-
-            double t;
-
-            if (abox.collides(bbox)) {
-                if (
-                        check_deep_coll(
-                                ac->entity_position.get_all(a).first + ac->get_position(),
-                                bc->entity_position.get_all(b).first + bc->get_position(),
-                                ac->entity_velocity.get_all(a).first, bc->entity_velocity.get_all(b).first,
-                                ac->entity_radius.get_all(a).first, bc->entity_radius.get_all(b).first,
-                                t,
-                                ticks_per_second)
-                        ) {
-                    return true;
-                }
-
-            }
-        }
-        return false;
+    int NodeRepresentation::get_mesh_id() {
+        return mesh_id;
     }
-
-    void System::process_collision(size_t a, size_t b, unsigned ticks_per_second) {
-        if (!contexts.get_state(a))
-            return;
-        if (!contexts.get_state(b))
-            return;
-
-        Context *A = contexts.get_all(a).first;
-        Context *B = contexts.get_all(b).first;
-        if (A == nullptr) return;
-        if (B == nullptr) return;
-
-        for (size_t i = 0; i < A->significant_entities.size(); ++i) {
-            if (A->significant_entities.get_state(i)) {
-                size_t sig = A->significant_entities.get(i);
-                for (size_t j = 0; j < B->entity_mass.size(); ++j) {
-                    if (__context_item_collides(A, sig, B, j, ticks_per_second)) {
-                        if (B->entity_mass.get_state(j))
-                            if (B->entity_significance.get(j) == 0){
-                                B->remove_entity(j);
-                                A->entity_velocity.set(sig, A->entity_velocity.get(sig)* 0.997);
-                            }
-
-                    };
-
-                }
-            }
-        }
-
-        if (a != b) {
-            for (size_t i = 0; i < B->significant_entities.size(); ++i) {
-                if (B->significant_entities.get_state(i)) {
-                    size_t sig = B->significant_entities.get(i);
-                    for (size_t j = 0; j < A->entity_mass.size(); ++j) {
-                        if (__context_item_collides(B, sig, A, j, ticks_per_second)) {
-                            if (A->entity_mass.get_state(j))
-                                if (A->entity_significance.get(j) == 0){
-                                    A->remove_entity(j);
-                                    B->entity_velocity.set(sig, B->entity_velocity.get(sig)* 0.997);
-                                }
-
-                        };
-                    }
-
-                }
-            }
-        }
-
-    }
-
-    void System::step(unsigned ticks_per_second) {
-        for (size_t i = 0; i < contexts.size(); ++i) {
-            if (contexts.get_state(i)) {
-                contexts.get_all(i).first->step(ticks_per_second);
-            }
-        }
-    }
-
-
 }

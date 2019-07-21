@@ -23,8 +23,8 @@
 
 #include <HiveEngine/Context.h>
 
-
 namespace HiveEngine::Renderer {
+    class OptixDrawing;
 
     struct OptixDrawingPerspective {
         GLuint texture_id;
@@ -44,6 +44,36 @@ namespace HiveEngine::Renderer {
         std::string miss_program;
         std::string exception_program;
     };
+
+    class OptixDrawingContextRepresentation : public ContextRepresentation {
+    public:
+        OptixDrawing* drawing;
+        optix::Transform transform;
+        optix::Group group;
+
+        OptixDrawingContextRepresentation(OptixDrawing* drawing);
+
+        virtual ~OptixDrawingContextRepresentation();
+
+        NodeRepresentation *create_node_representation(int scene_id, int mesh_id) override;
+
+        void update_position(glm::dvec3 new_position) override;
+    };
+
+    class OptixDrawingNodeRepresentation : public NodeRepresentation {
+    public:
+        OptixDrawingContextRepresentation* context_representation;
+        optix::Transform transform;
+
+        OptixDrawingNodeRepresentation(OptixDrawingContextRepresentation* context_representation, int scene_id, int mesh_id);
+
+        ~OptixDrawingNodeRepresentation() override;
+
+        void update_global_orientation(glm::dvec3 position, glm::mat3 rotation) override;
+
+        void update_orientation(glm::dvec3 position, glm::mat3 rotation) override;
+    };
+
 
     class OptixDrawing : public Drawing {
     private:
@@ -79,7 +109,7 @@ namespace HiveEngine::Renderer {
         std::vector<optix::GeometryGroup> extract_geometry_groups(aiScene* scene);
         size_t add_scene(aiScene* scene);
 
-        optix::Transform configure_context(HiveEngine::Context* physics_context);
+        ContextRepresentation* create_context_representation();
     };
 }
 

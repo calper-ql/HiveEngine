@@ -86,15 +86,16 @@ namespace HiveEngine::Renderer {
 
         if (!gl_tex_id) {
             glGenTextures(1, &gl_tex_id);
-
         }
 
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, gl_tex_id);
+
+
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
         // send PBO or host-mapped image data to texture
         const unsigned pboId = buffer->getGLBOId();
@@ -118,6 +119,8 @@ namespace HiveEngine::Renderer {
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, width, height, 0, pixel_format, GL_FLOAT, imageData);
         else if (buffer_format == RT_FORMAT_FLOAT3)
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, width, height, 0, pixel_format, GL_FLOAT, imageData);
+
+
 
         if (pboId)
             glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
@@ -146,7 +149,7 @@ namespace HiveEngine::Renderer {
                     rtx_context->setMissProgram(0, program_space[perspective.miss_program]);
                     rtx_context->setExceptionProgram(0, program_space[perspective.exception_program]);
 
-                    glm::vec3 pos = glm::vec3(package.pos);
+                    glm::vec3 pos = -glm::vec3(package.pos);
                     rtx_context["origin"]->setFloat(pos.x, pos.y, pos.z);
                     glm::mat4 view = package.view;
 
@@ -365,37 +368,72 @@ namespace HiveEngine::Renderer {
         return i;
     }
 
-    optix::Transform OptixDrawing::configure_context(HiveEngine::Context* physics_context) {
-        optix::Transform transform = rtx_context->createTransform();
-        glm::mat4 mat = glm::mat4(physics_context->get_rotation());
-        glm::vec3 pos = glm::vec3(physics_context->get_position());
 
-        if(!physics_context->parent) pos = -pos;
+    ContextRepresentation *OptixDrawing::create_context_representation() {
+        return new OptixDrawingContextRepresentation(this);
+    }
 
-        mat[3] = glm::vec4(pos, 1.0);
 
-        spdlog::info("transform: " + dvec3_to_str(physics_context->get_position()));
-        optix::Matrix4x4 matrixPlane(glm::value_ptr(mat));
-        transform->setMatrix(true, matrixPlane.getData(), matrixPlane.inverse().getData());
+    OptixDrawingNodeRepresentation::OptixDrawingNodeRepresentation(OptixDrawingContextRepresentation* context_representation,
+            int scene_id, int mesh_id) : NodeRepresentation(scene_id, mesh_id) {
 
-        optix::Group group = rtx_context->createGroup();
-
-        spdlog::info("Context: " + physics_context->name + " || repr count: " + std::to_string(physics_context->representations.size()));
-        for (ContextRepresentation repr: physics_context->representations) {
-            group->addChild(scenes[repr.scene_id][repr.mesh_id]);
-            spdlog::info("Adding repr: " + std::to_string(repr.scene_id) + " -> " + std::to_string(repr.mesh_id));
+        this->context_representation = context_representation;
+        if(get_scene_id() >= 0 && get_mesh_id() >= 0){
+            transform = context_representation->drawing->rtx_context->createTransform();
+            transform->setChild(context_representation->drawing->scenes[scene_id][mesh_id]);
+            update_global_orientation({}, {});
+            context_representation->group->addChild(transform);
         }
 
-        for (int i = 0; i < physics_context->entity_mass.size(); ++i) {
-            if(physics_context->contexts.get_state(i) && physics_context->contexts.get(i) != nullptr){
-                group->addChild(configure_context(physics_context->contexts.get(i)));
-            }
-        }
+    }
 
-        group->setAcceleration(rtx_context->createAcceleration("Trbvh"));
+    OptixDrawingNodeRepresentation::~OptixDrawingNodeRepresentation() {
+        if(get_scene_id() >= 0 && get_mesh_id() >= 0){
+            context_representation->group->removeChild(transform);
+            transform->destroy();
+        }
+    }
+
+    void OptixDrawingNodeRepresentation::update_global_orientation(glm::dvec3 position, glm::mat3 rotation) {
+        if(get_scene_id() >= 0 && get_mesh_id() >= 0) {
+            glm::mat4 mat(rotation);
+            glm::vec3 pos = glm::vec3(position);
+            mat[3] = glm::vec4(pos, 1.0);
+            optix::Matrix4x4 matrixPlane(glm::value_ptr(mat));
+            transform->setMatrix(true, matrixPlane.getData(), matrixPlane.inverse().getData());
+        }
+    }
+
+    void OptixDrawingNodeRepresentation::update_orientation(glm::dvec3 position, glm::mat3 rotation) {
+
+    }
+
+    OptixDrawingContextRepresentation::OptixDrawingContextRepresentation(OptixDrawing* drawing) : ContextRepresentation() {
+        this->drawing = drawing;
+        transform = drawing->rtx_context->createTransform();
+        group = drawing->rtx_context->createGroup();
+        group->setAcceleration(drawing->rtx_context->createAcceleration("Trbvh"));
         group->getAcceleration()->markDirty();
         transform->setChild(group);
+        update_position({0.0, 0.0, 0.0});
+        drawing->root_node->addChild(transform);
+    }
 
-        return transform;
+    OptixDrawingContextRepresentation::~OptixDrawingContextRepresentation() {
+        drawing->root_node->removeChild(transform);
+        transform->destroy();
+    }
+
+    NodeRepresentation *OptixDrawingContextRepresentation::create_node_representation(int scene_id, int mesh_id) {
+        return new OptixDrawingNodeRepresentation(this, scene_id, mesh_id);
+    }
+
+    void OptixDrawingContextRepresentation::update_position(glm::dvec3 new_position) {
+        glm::mat4 mat = glm::mat4(glm::mat3(1.0));
+        glm::vec3 pos = glm::vec3(new_position);
+        mat[3] = glm::vec4(pos, 1.0);
+        optix::Matrix4x4 matrixPlane(glm::value_ptr(mat));
+        transform->setMatrix(true, matrixPlane.getData(), matrixPlane.inverse().getData());
+        group->getAcceleration()->markDirty();
     }
 }

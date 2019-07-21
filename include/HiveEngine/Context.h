@@ -15,86 +15,129 @@
 #include <string>
 #include <utility>
 #include <assimp/scene.h>
+#include <glm/gtx/quaternion.hpp>
 
 namespace HiveEngine {
-    class Context;
     class System;
+    class Context;
+    class Node;
 
-    struct ContextRepresentation {
+    class NodeRepresentation {
+    private:
         int scene_id = -1;
-        unsigned int mesh_id = 0;
+        int mesh_id = -1;
+    public:
+        NodeRepresentation(int scene_id, int mesh_id);
+        virtual void update_global_orientation(glm::dvec3 position, glm::mat3 rotation) = 0;
+        virtual void update_orientation(glm::dvec3 position, glm::mat3 rotation) = 0;
+        virtual ~NodeRepresentation() = default;
+
+        int get_scene_id();
+        int get_mesh_id();
+    };
+
+    struct NodePhysicalData {
+        float health = 0.0;
+        double radius = 0.0;
+        double mass = 0.0;
+        glm::dvec3 position = {};
+        glm::mat3 rotation = glm::mat3(1.0f);
+        glm::dvec3 global_position = {};
+        glm::mat3 global_rotation = glm::mat3(1.0f);
+
+        glm::dvec3 velocity = {};
+        glm::mat3 angular_velocity = glm::mat3(1.0f);
+
+        glm::dvec3 next_position = {};
+        glm::mat3 next_rotation = glm::mat3(1.0f);
+        glm::dvec3 next_global_position = {};
+        glm::mat3 next_global_rotation = glm::mat3(1.0f);
+    };
+
+
+    class Node {
+    public:
+        std::string name = "";
+        Context* context = nullptr;
+        int physical_id = -1;
+        int bbox_id = -1;
+        NodeRepresentation* representation = nullptr;
+
+        int scene_id = -1;
+        int mesh_id = -1;
+
+        Node* parent = nullptr;
+        int parent_id = -1; // becomes id on context if parent is nullptr;
+
+        Buffer<Node*> children;
+
+        explicit Node(Context* context, Node* parent=nullptr);
+        virtual ~Node();
+
+        void erase_children();
+        void set_representation(NodeRepresentation* node_representation);
+
+        void remove_representation();
+        void update_representation();
+
+        void calculate_next_step(unsigned ticks_per_second);
+        void induce_next_step();
+
+        void calculate_current_global();
+        void calculate_next_global();
+        DAABB calculate_bounding_box();
+
+        void add_children(Node* child);
+        void set_parent(Node* parent);
+
+        NodePhysicalData* physical_data();
+        unsigned get_level();
+
+        void calculate_level();
+
+        void print();
+    };
+
+    class ContextRepresentation {
+    public:
+        ContextRepresentation() = default;
+        virtual ~ContextRepresentation() = default;
+        virtual NodeRepresentation* create_node_representation(int scene_id, int mesh_id) = 0;
+        virtual void update_position(glm::dvec3 new_position) = 0;
     };
 
     class Context {
-    private:
-        glm::dvec3 position = {0.0, 0.0, 0.0};
-        glm::mat3 rotation = glm::mat3(1.0f);
-        double radius = 0;
-
     public:
+        size_t id;
+        glm::dvec3 position = {0.0, 0.0, 0.0};
+        double radius = 0;
         System* system = nullptr;
-        Context* parent = nullptr;
-        size_t id = 0;
+        ContextRepresentation* representation = nullptr;
 
-        std::string name = "";
-        std::vector<ContextRepresentation> representations;
+        Buffer<NodePhysicalData> node_physical_data;
+        Buffer<int> node_level;
+        Buffer<DAABB> node_bounding_box;
 
-        Buffer<double> entity_radius;
-        Buffer<double> entity_mass;
-        Buffer<glm::dvec3> entity_position;
-        Buffer<glm::dvec3> entity_velocity;
-        Buffer<glm::mat3> entity_rotation;
-        Buffer<int> entity_significance;
-        Buffer<Context*> contexts;
-
-        std::vector<DAABB> bounding_boxes;
-
-        Buffer<size_t> significant_entities;
+        Buffer<Node*> root_nodes;
 
         explicit Context(System* system);
-        explicit Context(Context* parent);
-        ~Context();
+        virtual ~Context();
 
-        void calculate_positions(unsigned ticks_per_second);
-        void calculate_bounding_boxes(unsigned ticks_per_second);
+        void calculate_next_step(unsigned ticks_per_second=60);
+        void calculate_bounding_boxes();
+        void induce_next_step();
 
-        size_t new_entity();
-        void remove_entity(size_t id);
+        Node* load_ai_node(aiScene* scene, aiNode *root, int scene_id, Node* parent=nullptr);
 
-        void step(unsigned ticks_per_second);
-
-        double load_ai_node(aiScene* scene, aiNode* node, int scene_id);
-
-        void set_position(glm::dvec3 new_pos);
-        void set_rotation(glm::mat3 new_rot);
-        void set_radius(double radius);
-        void set_significance(int sig);
-
-        glm::dvec3 get_position();
-        glm::mat3 get_rotation();
-        double get_radius();
-
+        void update_representation();
     };
 
     class System {
     public:
         Buffer<Context*> contexts;
 
-        size_t context_collision_check_iterator = 0;
-
         System();
         ~System();
-
-        std::vector<int> collision_map;
-        size_t a_id = 0;
-        size_t b_id = 0;
-        size_t map_iter = 0;
-        void check_colliding_contexts(size_t check_range);
-
-        void process_collision_map(unsigned ticks_per_second);
-        void process_collision(size_t a, size_t b, unsigned ticks_per_second);
-
-        void step(unsigned ticks_per_second);
 
 
     };

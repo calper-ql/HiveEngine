@@ -28,12 +28,12 @@ RT_PROGRAM void color_raygen()
     const float2 pixel = make_float2(theLaunchIndex);
     const float2 fragment = pixel + make_float2(0.5f);
     const float2 screen = make_float2(theLaunchDim);
-    const float2 ndc = (fragment / screen) * 2.0f - 1.0f;
+    const float2 ndc = (fragment / screen) * (-2.0f) + 1.0f;
 
     float aspectRatio = screen.x / screen.y;
     float focus = tan(fov/2.0);
 
-    float4 direction = view * make_float4(ndc.x * aspectRatio , ndc.y, focus, 1.0);
+    float4 direction = view * make_float4(ndc.x * aspectRatio , ndc.y, -focus, 1.0);
 
     optix::Ray ray = optix::make_Ray(origin, make_float3(direction), 0, 0.0f, RT_DEFAULT_MAX);
     rtTrace(sysTopObject, ray, pyld);

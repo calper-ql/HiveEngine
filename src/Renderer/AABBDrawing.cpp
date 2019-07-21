@@ -88,6 +88,8 @@ namespace HiveEngine::Renderer {
 
         Drawing::draw();
 
+        glLineWidth(line_width);
+
         glUseProgram(program);
         glBindVertexArray(VAO);
 

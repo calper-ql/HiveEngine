@@ -29,7 +29,7 @@ namespace HiveEngine::Renderer {
 
         unsigned line_width;
 
-        AABBDrawing(Context *context, unsigned line_width=0);
+        AABBDrawing(Context *context, unsigned line_width=1);
 
         ~AABBDrawing() override;
 

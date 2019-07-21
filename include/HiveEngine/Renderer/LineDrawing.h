@@ -20,6 +20,8 @@ namespace HiveEngine::Renderer {
         HiveEngine::Buffer<Line> lines; // Orientations
         HiveEngine::Renderer::Camera* camera = nullptr;
 
+        glm::vec3 offset = {};
+
         GLuint texture_id;
         GLuint VBO, VAO;
         GLuint program;
