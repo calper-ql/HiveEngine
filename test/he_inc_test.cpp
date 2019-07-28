@@ -17,36 +17,40 @@ int main(int argc, char* argv[]){
     std::cout << "HiveEngine version: " << HiveEngine::get_major_version()
     << "." << HiveEngine::get_minor_version() << std::endl;
 
-    HiveEngineRenderer::Camera camera;
+    HiveEngine::Renderer::Camera camera;
     camera.set_position({0.0, 0.0, -3.30});
 
-    auto statue_texture = HiveEngine::load_texture("../data/statue.jpg");
-    std::cout << "Statue texture:" << std::endl;
-    std::cout << "width:   " << statue_texture.width << std::endl;
-    std::cout << "height:  " << statue_texture.height << std::endl;
-    std::cout << "channel: " << statue_texture.channel << std::endl;
+    //auto statue_texture = HiveEngine::load_texture("../data/statue.jpg");
+    //std::cout << "Statue texture:" << std::endl;
+    //std::cout << "width:   " << statue_texture.width << std::endl;
+    //std::cout << "height:  " << statue_texture.height << std::endl;
+    //std::cout << "channel: " << statue_texture.channel << std::endl;
 
-    HiveEngineRenderer::Context context;
-    auto test_directive = new HiveEngineRenderer::StandardDirective(&context);
-    auto line_drawing = new HiveEngineRenderer::LineDrawing(test_directive, &camera);
+    HiveEngine::Renderer::Context context;
+    auto test_directive = new HiveEngine::Renderer::StandardDirective(&context);
+    auto line_drawing = new HiveEngine::Renderer::LineDrawing(test_directive, &camera);
+    auto line_drawing_2 = new HiveEngine::Renderer::LineDrawing(test_directive);
 
-    HiveEngineRenderer::FontManager font_manager;
+    HiveEngine::Renderer::FontManager font_manager;
     font_manager.load_font("expanse", "../data/TheExpanse.ttf");
     font_manager.load_font("ffdin", "../data/ffdin.ttf");
 
-    auto glyph = font_manager.get_glyph("ffdin", 'g');
-    auto font_drawing = new HiveEngineRenderer::GlyphDrawing(test_directive, glyph.texture);
-
-    auto text_drawing = new HiveEngineRenderer::TextDrawing(test_directive, &font_manager, "ffdin");
+    auto text_drawing = new HiveEngine::Renderer::TextDrawing(test_directive, &font_manager, "ffdin");
 
     test_directive->register_drawing(line_drawing);
-    test_directive->register_drawing(font_drawing);
     test_directive->register_drawing(text_drawing);
+    test_directive->register_drawing(line_drawing_2);
 
-    text_drawing->add_text_center("The Expanse 131 ,.,^%$", {0.0, -0.95, 0.0}, 0.05);
-    text_drawing->add_text_center("The Expanse", {0.0, 0.0, 0.0}, 0.1);
+    HiveEngine::Line text_line;
+    text_line.a.color = {1.0, 1.0, 1.0, 1.0};
+    text_line.b.color = {1.0, 1.0, 1.0, 1.0};
+    text_line.a.position = {-1.0, 0.0, 0.0};
+    text_line.b.position = {1.0, 0.0, 0.0};
 
-    //font_drawing->add_image_center({-0.6, 0.0, 0.0}, glyph.texture.width/1000.0, glyph.texture.height/1000.0, {0.0, 1.0, 0.0, 1.0});
+    line_drawing_2->line_buffer.add(text_line);
+
+    text_drawing->add_text("The Expanse 131 ,.,^%$", {0.0, -0.95, 0.0}, 0.05);
+    text_drawing->add_text("The Expanse", {0.0, 0.0, 0.0}, 0.1);
 
     std::default_random_engine g;
     std::uniform_real_distribution<float> d(-0.3f, 0.3f);
@@ -88,11 +92,12 @@ int main(int argc, char* argv[]){
 
 
     try {
+        context.validation_layers.clear();
         context.init_window();
         context.init_vulkan();
 
         while(!glfwWindowShouldClose(context.get_window())){
-            camera.set_perspective(90, HiveEngineRenderer::get_window_ratio(context.get_window()), 0.0001, 1000.0);
+            camera.set_perspective(90, HiveEngine::Renderer::get_window_ratio(context.get_window()), 0.0001, 1000.0);
             camera.get_user_input(context.get_window());
             camera.get_user_movement(context.get_window());
             glfwPollEvents();
@@ -100,7 +105,9 @@ int main(int argc, char* argv[]){
 
             for (int i = 0; i < 2; ++i) {
                 auto size = line_drawing->line_buffer.size();
-                line_drawing->line_buffer.remove(rand()%size);
+                auto idx = rand()%size;
+                if(line_drawing->line_buffer.get_state(idx))
+                line_drawing->line_buffer.remove(idx);
             }
 
             for (int i = 0; i < 1; ++i) {

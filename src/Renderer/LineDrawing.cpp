@@ -4,8 +4,8 @@
 
 #include <HiveEngine/Renderer/LineDrawing.h>
 
-HiveEngineRenderer::LineDrawing::LineDrawing(HiveEngineRenderer::Directive *directive,
-                                             HiveEngineRenderer::Camera *camera) : Drawing(directive) {
+HiveEngine::Renderer::LineDrawing::LineDrawing(HiveEngine::Renderer::Directive *directive,
+                                             HiveEngine::Renderer::Camera *camera) : Drawing(directive) {
     bindingDescriptions[0].binding = 0;
     bindingDescriptions[0].stride = sizeof(HiveEngine::Point);
     bindingDescriptions[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
@@ -19,14 +19,10 @@ HiveEngineRenderer::LineDrawing::LineDrawing(HiveEngineRenderer::Directive *dire
     attributeDescriptions[1].format = VK_FORMAT_R32G32B32A32_SFLOAT;
     attributeDescriptions[1].offset = offsetof(HiveEngine::Point, color);
 
-    if (camera == nullptr) {
-        throw std::runtime_error("LineDrawing -> camera was nullptr!");
-    }
     this->camera = camera;
-
 }
 
-void HiveEngineRenderer::LineDrawing::init(VkRenderPass render_pass) {
+void HiveEngine::Renderer::LineDrawing::init(VkRenderPass render_pass) {
     Drawing::init(render_pass);
 
     std::array<VkDescriptorPoolSize, 2> poolSize = {};
@@ -190,11 +186,15 @@ void HiveEngineRenderer::LineDrawing::init(VkRenderPass render_pass) {
 
 }
 
-void HiveEngineRenderer::LineDrawing::update() {
+void HiveEngine::Renderer::LineDrawing::update() {
     if (point_allocation == nullptr) line_buffer.mark_changed();
 
+    CameraPackage package;
+    if(camera){
+       package = camera->get_package();
+    }
+
     if (vk_camera_buffer == nullptr) {
-        auto package = camera->get_package();
 
         VkBufferCreateInfo bufferInfo = {VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
         bufferInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
@@ -208,7 +208,6 @@ void HiveEngineRenderer::LineDrawing::update() {
     }
 
     {
-        auto package = camera->get_package();
         void *data;
 
         vmaMapMemory(get_context()->get_allocator(), camera_allocation, &data);
@@ -296,7 +295,7 @@ void HiveEngineRenderer::LineDrawing::update() {
 
 }
 
-void HiveEngineRenderer::LineDrawing::draw(VkCommandBuffer cmd_buffer) {
+void HiveEngine::Renderer::LineDrawing::draw(VkCommandBuffer cmd_buffer) {
     if (line_buffer.size() > 0) {
         get_context()->wait_device();
         this->update();
@@ -313,7 +312,7 @@ void HiveEngineRenderer::LineDrawing::draw(VkCommandBuffer cmd_buffer) {
     }
 }
 
-void HiveEngineRenderer::LineDrawing::cleanup() {
+void HiveEngine::Renderer::LineDrawing::cleanup() {
     vmaDestroyBuffer(get_context()->get_allocator(), vk_point_buffer, point_allocation);
     vmaDestroyBuffer(get_context()->get_allocator(), vk_state_buffer, state_allocation);
     point_allocation = nullptr;

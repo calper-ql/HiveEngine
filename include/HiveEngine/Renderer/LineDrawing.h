@@ -9,7 +9,7 @@
 #include <HiveEngine/Buffer.hpp>
 #include <HiveEngine/Renderer/Camera.h>
 
-namespace HiveEngineRenderer {
+namespace HiveEngine::Renderer {
     class LineDrawing : public Drawing {
     public:
         HiveEngine::Buffer<HiveEngine::Line> line_buffer;
@@ -37,7 +37,7 @@ namespace HiveEngineRenderer {
 
         Camera *camera;
 
-        LineDrawing(Directive *directive, Camera *camera);
+        LineDrawing(Directive *directive, Camera *camera=nullptr);
 
         void init(VkRenderPass render_pass) override;
 

@@ -4,7 +4,7 @@
 
 #include <HiveEngine/Renderer/Drawing.h>
 
-namespace HiveEngineRenderer {
+namespace HiveEngine::Renderer {
 
     Drawing::Drawing(Directive *directive) {
         if (directive == nullptr) {

@@ -6,6 +6,7 @@
 #define HIVEENGINE_HIVEENGINE_H
 
 #include <glm/glm.hpp>
+#include <spdlog/spdlog.h>
 
 namespace HiveEngine {
 
@@ -17,6 +18,8 @@ namespace HiveEngine {
     int get_major_version();
 
     int get_minor_version();
+
+    void process_error();
 }
 
 #endif //HIVEENGINE_HIVEENGINE_H

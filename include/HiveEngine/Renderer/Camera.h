@@ -16,12 +16,12 @@
 
 #include <GLFW/glfw3.h>
 
-namespace HiveEngineRenderer {
+namespace HiveEngine::Renderer {
     float get_window_ratio(GLFWwindow *window);
 
     struct CameraPackage {
         glm::mat4 view;
-        int apply = 1;
+        int apply = 0;
     };
 
     class Camera {

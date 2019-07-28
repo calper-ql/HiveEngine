@@ -25,7 +25,7 @@
 #include <HiveEngine/Renderer/vk_mem_alloc.h>
 #include <HiveEngine/Texture.h>
 
-namespace HiveEngineRenderer {
+namespace HiveEngine::Renderer {
 
     class Directive;
 

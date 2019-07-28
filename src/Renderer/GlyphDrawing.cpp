@@ -6,7 +6,7 @@
 
 #include <HiveEngine/Renderer/GlyphDrawing.h>
 
-namespace HiveEngineRenderer {
+namespace HiveEngine::Renderer {
 
     GlyphDrawing::GlyphDrawing(Directive *directive, HiveEngine::Texture texture) : Drawing(directive) {
         this->texture = texture;
@@ -44,12 +44,15 @@ namespace HiveEngineRenderer {
         auto res = vmaCreateImage(get_context()->get_allocator(), &imageInfo, &textureCreateInfo,
                                   &textureImage, &textureAllocation, nullptr);
 
+        if(res != VK_SUCCESS){
+            throw std::runtime_error("Glyph could not create img...");
+        }
 
         std::array<VkVertexInputBindingDescription, 1> bindingDescriptions = {};
         std::array<VkVertexInputAttributeDescription, 2> attributeDescriptions = {};
 
         bindingDescriptions[0].binding = 0;
-        bindingDescriptions[0].stride = sizeof(glm::vec3) + sizeof(glm::vec2);
+        bindingDescriptions[0].stride = sizeof(glm::vec3) + sizeof(glm::vec2) + sizeof(glm::vec4);
         bindingDescriptions[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
         attributeDescriptions[0].binding = 0;
@@ -62,13 +65,14 @@ namespace HiveEngineRenderer {
         attributeDescriptions[1].format = VK_FORMAT_R32G32_SFLOAT;
         attributeDescriptions[1].offset = offsetof(ImageOrientation, f0uv);
 
-        std::array<VkDescriptorPoolSize, 3> poolSizes = {};
-        poolSizes[0].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        //attributeDescriptions[2].binding = 0;
+        //attributeDescriptions[2].location = 2;
+        //attributeDescriptions[2].format = VK_FORMAT_R32G32B32A32_SFLOAT;
+        //attributeDescriptions[2].offset = offsetof(ImageOrientation, c0);
+
+        std::array<VkDescriptorPoolSize, 1> poolSizes = {};
+        poolSizes[0].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         poolSizes[0].descriptorCount = 1;
-        poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        poolSizes[1].descriptorCount = 1;
-        poolSizes[2].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-        poolSizes[2].descriptorCount = 1;
 
         VkDescriptorPoolCreateInfo poolInfo = {};
         poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -81,25 +85,13 @@ namespace HiveEngineRenderer {
             throw std::runtime_error("failed to create descriptor pool!");
         }
 
-        std::array<VkDescriptorSetLayoutBinding, 3> bindings = {};
+        std::array<VkDescriptorSetLayoutBinding, 1> bindings = {};
 
         bindings[0].binding = 1;
-        bindings[0].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        bindings[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         bindings[0].descriptorCount = 1;
         bindings[0].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
         bindings[0].pImmutableSamplers = nullptr;
-
-        bindings[1].binding = 2;
-        bindings[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        bindings[1].descriptorCount = 1;
-        bindings[1].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-        bindings[1].pImmutableSamplers = nullptr;
-
-        bindings[2].binding = 3;
-        bindings[2].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-        bindings[2].descriptorCount = 1;
-        bindings[2].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-        bindings[2].pImmutableSamplers = nullptr;
 
         VkDescriptorSetLayoutCreateInfo layoutInfo = {};
         layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -254,104 +246,27 @@ namespace HiveEngineRenderer {
                 memcpy(data, orientations.data(), sizeof(ImageOrientation) * orientations.size());
                 vmaUnmapMemory(get_context()->get_allocator(), orientation_allocation);
             }
+
+            
+        VkDescriptorImageInfo imageInfo = {};
+        imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        imageInfo.imageView = imageView;
+        imageInfo.sampler = textureSampler;
+
+        VkWriteDescriptorSet imageWrite = {};
+        imageWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        imageWrite.dstSet = descriptorSet;
+        imageWrite.dstBinding = 1;
+        imageWrite.dstArrayElement = 0;
+        imageWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        imageWrite.descriptorCount = 1;
+        imageWrite.pImageInfo = &imageInfo;
+
+        std::array<VkWriteDescriptorSet, 1> write_descriptors = {imageWrite};
+
+        vkUpdateDescriptorSets(get_context()->get_device(), write_descriptors.size(), write_descriptors.data(), 0, nullptr);
         }
         imos.mark_unchanged();
-
-        if (imtds.is_changed() || description_buffer == nullptr) {
-            vmaDestroyBuffer(get_context()->get_allocator(), description_buffer, description_allocation);
-            description_buffer = nullptr;
-            description_allocation = nullptr;
-
-            vmaDestroyBuffer(get_context()->get_allocator(), color_buffer, color_allocation);
-            color_buffer = nullptr;
-            color_allocation = nullptr;
-
-            auto decriptors = imtds.get_data();
-
-            VkBufferCreateInfo bufferInfo = {VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
-            VmaAllocationCreateInfo allocInfo = {};
-
-
-            bufferInfo.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-            bufferInfo.size = sizeof(ImageTriangleDescription) * decriptors.size();
-            allocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
-            vmaCreateBuffer(get_context()->get_allocator(), &bufferInfo, &allocInfo, &description_buffer,
-                            &description_allocation, nullptr);
-
-            if (!decriptors.empty()) {
-                void *data;
-                vmaMapMemory(get_context()->get_allocator(), description_allocation, &data);
-                memcpy(data, decriptors.data(), sizeof(ImageTriangleDescription) * decriptors.size());
-                vmaUnmapMemory(get_context()->get_allocator(), description_allocation);
-            }
-
-            auto colors = icds.get_data();
-
-            bufferInfo.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-            bufferInfo.size = sizeof(ImageColorDescription) * colors.size();
-            allocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
-            vmaCreateBuffer(get_context()->get_allocator(), &bufferInfo, &allocInfo, &color_buffer,
-                            &color_allocation, nullptr);
-
-            if (!colors.empty()) {
-                void *data;
-                vmaMapMemory(get_context()->get_allocator(), color_allocation, &data);
-                memcpy(data, colors.data(), sizeof(ImageColorDescription) * colors.size());
-                vmaUnmapMemory(get_context()->get_allocator(), color_allocation);
-            }
-
-            VkDescriptorBufferInfo stateStorageBufferInfo = {};
-            stateStorageBufferInfo.buffer = description_buffer;
-            stateStorageBufferInfo.offset = 0;
-            stateStorageBufferInfo.range = VK_WHOLE_SIZE;
-
-            VkWriteDescriptorSet stateStorageWrite = {};
-            stateStorageWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            stateStorageWrite.dstSet = descriptorSet;
-            stateStorageWrite.dstBinding = 1;
-            stateStorageWrite.dstArrayElement = 0;
-            stateStorageWrite.descriptorCount = 1;
-            stateStorageWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-            stateStorageWrite.pBufferInfo = &stateStorageBufferInfo;
-            stateStorageWrite.pImageInfo = nullptr;
-            stateStorageWrite.pTexelBufferView = nullptr;
-
-            VkDescriptorBufferInfo colorStorageBufferInfo = {};
-            colorStorageBufferInfo.buffer = color_buffer;
-            colorStorageBufferInfo.offset = 0;
-            colorStorageBufferInfo.range = VK_WHOLE_SIZE;
-
-            VkWriteDescriptorSet colorStorageWrite = {};
-            colorStorageWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            colorStorageWrite.dstSet = descriptorSet;
-            colorStorageWrite.dstBinding = 3;
-            colorStorageWrite.dstArrayElement = 0;
-            colorStorageWrite.descriptorCount = 1;
-            colorStorageWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-            colorStorageWrite.pBufferInfo = &colorStorageBufferInfo;
-            colorStorageWrite.pImageInfo = nullptr;
-            colorStorageWrite.pTexelBufferView = nullptr;
-
-            VkDescriptorImageInfo imageInfo = {};
-            imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-            imageInfo.imageView = imageView;
-            imageInfo.sampler = textureSampler;
-
-            VkWriteDescriptorSet imageWrite = {};
-            imageWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            imageWrite.dstSet = descriptorSet;
-            imageWrite.dstBinding = 2;
-            imageWrite.dstArrayElement = 0;
-            imageWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            imageWrite.descriptorCount = 1;
-            imageWrite.pImageInfo = &imageInfo;
-
-            std::array<VkWriteDescriptorSet, 3> write_descriptors = {stateStorageWrite, imageWrite, colorStorageWrite};
-
-            vkUpdateDescriptorSets(get_context()->get_device(), write_descriptors.size(), write_descriptors.data(), 0,
-                                   nullptr);
-        }
-        imtds.mark_unchanged();
 
     }
 
@@ -384,7 +299,6 @@ namespace HiveEngineRenderer {
                 } else if(texture.channel == 1){
                     viewInfo.format = VK_FORMAT_R8_UNORM;
                 }
-
 
                 if (vkCreateImageView(get_context()->get_device(), &viewInfo, nullptr, &imageView) != VK_SUCCESS) {
                     throw std::runtime_error("failed to create texture image view!");
@@ -421,7 +335,7 @@ namespace HiveEngineRenderer {
             vkCmdBindDescriptorSets(cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet,
                                     0, nullptr);
 
-            vkCmdDraw(cmd_buffer, imos.size() * 6, 1, 0, 0);
+            vkCmdDraw(cmd_buffer, imos.size() * 3, 1, 0, 0);
         }
     }
 
@@ -440,14 +354,6 @@ namespace HiveEngineRenderer {
         orientation_buffer = nullptr;
         orientation_allocation = nullptr;
 
-        vmaDestroyBuffer(get_context()->get_allocator(), description_buffer, description_allocation);
-        description_buffer = nullptr;
-        description_allocation = nullptr;
-
-        vmaDestroyBuffer(get_context()->get_allocator(), color_buffer, color_allocation);
-        color_buffer = nullptr;
-        color_allocation = nullptr;
-
         vkDestroyDescriptorSetLayout(get_context()->get_device(), descriptorSetLayout, nullptr);
         vkDestroyDescriptorPool(get_context()->get_device(), descriptorPool, nullptr);
 
@@ -459,40 +365,31 @@ namespace HiveEngineRenderer {
     GlyphDrawing::add_image_center(glm::vec3 position, float width, float height, glm::vec4 color) {
         ImageDescription id;
 
-        ImageTriangleDescription itd;
-        itd.texture_index = 0;
-
-        ImageColorDescription icd;
-        icd.color = color;
-
-        ImageOrientation io = {};
-
         float left = position.x - width / 2.0f;
         float right = position.x + width / 2.0f;
         float up = position.y + height / 2.0f;
         float down = position.y - height / 2.0f;
 
-        io.f0 = {left, up, position.z};
-        io.f0uv = {0.0f, 1.0f};
+        ImageOrientation io1 = {};
+        ImageOrientation io2 = {};
 
-        io.f1 = {right, up, position.z};
-        io.f1uv = {1.0f, 1.0f};
+        io1.f0 = {left, up, position.z};
+        io1.f0uv = {0.0f, 0.0f};
+        io1.f1 = {right, up, position.z};
+        io1.f1uv = {1.0f, 0.0f};
+        io1.f2 = {right, down, position.z};
+        io1.f2uv = {1.0f, 1.0f};
 
-        io.f2 = {right, down, position.z};
-        io.f2uv = {1.0f, 0.0f};
+        io2.f0 = {right, down, position.z};
+        io2.f0uv = {1.0f, 1.0f};
+        io2.f1 = {left, down, position.z};
+        io2.f1uv = {0.0f, 1.0f};
+        io2.f2 = {left, up, position.z};
+        io2.f2uv = {0.0f, 0.0f};
 
-        io.f3 = {right, down, position.z};
-        io.f3uv = {1.0f, 0.0f};
-
-        io.f4 = {left, down, position.z};
-        io.f4uv = {0.0f, 0.0f};
-
-        io.f5 = {left, up, position.z};
-        io.f5uv = {0.0f, 1.0f};
-
-        id.orientation = imos.add(io);
-        id.itdesc1 = imtds.add(itd); icds.add(icd);
-        id.itdesc2 = imtds.add(itd); icds.add(icd);
+        id.orientation1 = imos.add(io1);
+        id.orientation2 = imos.add(io2);
+        id.glyph_drawing = this;
 
         return id;
     }
@@ -501,55 +398,51 @@ namespace HiveEngineRenderer {
     GlyphDrawing::add_image_lower_left(glm::vec3 position, float width, float height, glm::vec4 color) {
         ImageDescription id;
 
-        ImageTriangleDescription itd;
-        itd.texture_index = 0;
-
-        ImageColorDescription icd;
-        icd.color = color;
-
-        ImageOrientation io = {};
-
         float left = position.x;
         float right = position.x + width;
         float up = position.y + height;
         float down = position.y;
 
-        io.f0 = {left, up, position.z};
-        io.f0uv = {0.0f, 1.0f};
+        ImageOrientation io1 = {};
+        ImageOrientation io2 = {};
 
-        io.f1 = {right, up, position.z};
-        io.f1uv = {1.0f, 1.0f};
+        io1.f0 = {left, up, position.z};
+        io1.f0uv = {0.0f, 1.0f};
+        io1.c0 = color;
+        io1.f1 = {right, up, position.z};
+        io1.f1uv = {1.0f, 1.0f};
+        io1.c1 = color;
+        io1.f2 = {right, down, position.z};
+        io1.f2uv = {1.0f, 0.0f};
+        io1.c2 = color;
 
-        io.f2 = {right, down, position.z};
-        io.f2uv = {1.0f, 0.0f};
+        io2.f0 = {right, down, position.z};
+        io2.f0uv = {1.0f, 0.0f};
+        io2.c0 = color;
+        io2.f1 = {left, down, position.z};
+        io2.f1uv = {0.0f, 0.0f};
+        io2.c1 = color;
+        io2.f2 = {left, up, position.z};
+        io2.f2uv = {0.0f, 1.0f};
+        io2.c2 = color;
 
-        io.f3 = {right, down, position.z};
-        io.f3uv = {1.0f, 0.0f};
-
-        io.f4 = {left, down, position.z};
-        io.f4uv = {0.0f, 0.0f};
-
-        io.f5 = {left, up, position.z};
-        io.f5uv = {0.0f, 1.0f};
-
-        id.orientation = imos.add(io);
-        id.itdesc1 = imtds.add(itd); icds.add(icd);
-        id.itdesc2 = imtds.add(itd); icds.add(icd);
+        id.orientation1 = imos.add(io1);
+        id.orientation2 = imos.add(io2);
+        id.glyph_drawing = this;
 
         return id;
     }
 
 
     void GlyphDrawing::remove_image(ImageDescription id) {
-        imos.remove(id.orientation);
-        ImageTriangleDescription itd;
-        itd.texture_index = -1;
+        ImageOrientation io1 = {};
+        ImageOrientation io2 = {};
 
-        imtds.set(id.itdesc1, itd);
-        imtds.set(id.itdesc2, itd);
-        imtds.remove(id.itdesc1); icds.remove(id.itdesc1);
-        imtds.remove(id.itdesc2); icds.remove(id.itdesc2);
-        imos.remove(id.orientation);
+        imos.set(id.orientation1, io1);
+        imos.set(id.orientation2, io2);
+
+        imos.remove(id.orientation1);
+        imos.remove(id.orientation2);
     }
 
     GlyphDrawing::~GlyphDrawing() {

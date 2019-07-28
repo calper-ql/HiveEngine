@@ -25,6 +25,11 @@ namespace HiveEngine {
         std::vector<glm::uvec3> normal_indices;
         std::vector<glm::uvec3> uv_indices;
 
+        int material_index;
+
+    public:
+
+
 
     private:
 

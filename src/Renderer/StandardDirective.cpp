@@ -5,13 +5,14 @@
 #include <HiveEngine/Renderer/StandardDirective.h>
 #include <HiveEngine/Renderer/Drawing.h>
 
-namespace HiveEngineRenderer {
+namespace HiveEngine::Renderer {
 
     StandardDirective::StandardDirective(Context *context) : Directive(context) {
 
     }
 
     void StandardDirective::init_frame_buffers() {
+        Directive::init_frame_buffers();
 
         VkAttachmentDescription colorAttachment = {};
         colorAttachment.format = get_context()->get_image_format();

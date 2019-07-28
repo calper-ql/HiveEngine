@@ -58,7 +58,7 @@ static const char* getEGLErrorString(EGLint error)
         case EGL_BAD_DISPLAY:
             return "An EGLDisplay argument does not name a valid EGL display connection";
         case EGL_BAD_SURFACE:
-            return "An EGLSurface argument does not name a valid surface configured for GL rendering";
+            return "An EGLSurface argument does not name a valid surface configured for glad rendering";
         case EGL_BAD_MATCH:
             return "Arguments are inconsistent";
         case EGL_BAD_PARAMETER:

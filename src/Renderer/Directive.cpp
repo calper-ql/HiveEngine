@@ -4,7 +4,7 @@
 
 #include <HiveEngine/Renderer/Directive.h>
 
-namespace HiveEngineRenderer {
+namespace HiveEngine::Renderer {
 
     Directive::Directive(Context *context) {
         if (context == nullptr) throw std::runtime_error("A Directive was passed a nullptr context!");
@@ -13,7 +13,8 @@ namespace HiveEngineRenderer {
     }
 
     void Directive::init_frame_buffers() {
-
+        size.x = get_context()->get_swap_chain_extent().width;
+        size.y = get_context()->get_swap_chain_extent().height;
     }
 
     Context *Directive::get_context() {
@@ -34,5 +35,9 @@ namespace HiveEngineRenderer {
 
     void Directive::cleanup() {
 
+    }
+
+    glm::uvec2 Directive::get_size(){
+        return size;
     }
 }

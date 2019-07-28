@@ -9,24 +9,19 @@
 #include <HiveEngine/Buffer.hpp>
 #include <HiveEngine/Texture.h>
 
-namespace HiveEngineRenderer {
+namespace HiveEngine::Renderer {
+    class GlyphDrawing;
+
     struct ImageOrientation {
         glm::vec3 f0;
         glm::vec2 f0uv;
+        glm::vec4 c0;
         glm::vec3 f1;
         glm::vec2 f1uv;
+        glm::vec4 c1;
         glm::vec3 f2;
         glm::vec2 f2uv;
-        glm::vec3 f3;
-        glm::vec2 f3uv;
-        glm::vec3 f4;
-        glm::vec2 f4uv;
-        glm::vec3 f5;
-        glm::vec2 f5uv;
-    };
-
-    struct ImageTriangleDescription {
-        int texture_index = -1;
+        glm::vec4 c2;
     };
 
     struct ImageColorDescription {
@@ -34,25 +29,17 @@ namespace HiveEngineRenderer {
     };
 
     struct ImageDescription {
-        size_t orientation;
-        size_t itdesc1;
-        size_t itdesc2;
+        GlyphDrawing* glyph_drawing;
+        size_t orientation1;
+        size_t orientation2;
     };
 
     class GlyphDrawing : public Drawing {
     public:
         HiveEngine::Buffer<ImageOrientation> imos; // Orientations
-        HiveEngine::Buffer<ImageTriangleDescription> imtds; // Descriptions
-        HiveEngine::Buffer<ImageColorDescription> icds; // Descriptions
 
         VmaAllocation orientation_allocation = nullptr;
         VkBuffer orientation_buffer = nullptr;
-
-        VmaAllocation description_allocation = nullptr;
-        VkBuffer description_buffer = nullptr;
-
-        VmaAllocation color_allocation = nullptr;
-        VkBuffer color_buffer = nullptr;
 
         VkPipeline graphicsPipeline;
         VkPipelineLayout pipelineLayout;

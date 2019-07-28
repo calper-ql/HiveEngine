@@ -36,9 +36,39 @@ namespace HiveEngine {
     }
 
     bool AABB::collides(AABB other) {
-        if (max.x < other.min.x || min.x > other.max.x) return false;
-        if (max.y < other.min.y || min.y > other.max.y) return false;
-        if (max.z < other.min.z || min.z > other.max.z) return false;
-        return true;
+        return(min.x <= other.max.x && max.x >= other.min.x) &&
+              (min.y <= other.max.y && max.y >= other.min.y) &&
+              (min.z <= other.max.z && max.z >= other.min.z);
     }
+
+    DAABB::DAABB() {
+        min = glm::dvec3(0.0f, 0.0f, 0.0f);
+        max = glm::dvec3(0.0f, 0.0f, 0.0f);
+    }
+
+    bool DAABB::collides(DAABB other) {
+		return(min.x <= other.max.x && max.x >= other.min.x) &&
+			(min.y <= other.max.y && max.y >= other.min.y) &&
+			(min.z <= other.max.z && max.z >= other.min.z);
+    }
+
+    void DAABB::add(glm::dvec3 point) {
+        if(min.x > point.x) min.x = point.x;
+        if(min.y > point.y) min.y = point.y;
+        if(min.z > point.z) min.z = point.z;
+        if(max.x < point.x) max.x = point.x;
+        if(max.y < point.y) max.y = point.y;
+        if(max.z < point.z) max.z = point.z;
+    }
+
+    void DAABB::combine(DAABB other) {
+        if(min.x > other.min.x) min.x = other.min.x;
+        if(min.y > other.min.y) min.y = other.min.y;
+        if(min.z > other.min.z) min.z = other.min.z;
+
+        if(max.x < other.max.x) max.x = other.max.x;
+        if(max.y < other.max.y) max.y = other.max.y;
+        if(max.z < other.max.z) max.z = other.max.z;
+    }
+
 }

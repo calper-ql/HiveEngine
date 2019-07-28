@@ -10,7 +10,7 @@
 #include <HiveEngine/Common.h>
 #include <cstddef>
 
-namespace HiveEngineRenderer {
+namespace HiveEngine::Renderer {
     class Drawing {
     private:
         bool enabled = true;

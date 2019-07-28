@@ -1,15 +1,18 @@
 cmake_minimum_required(VERSION 3.10)
 project(HiveEngine VERSION 1.0.0 LANGUAGES CXX)
 
-option(BUILD_RENDERER "Build the renderer for HiveEngine" OFF)
+option(BUILD_RENDERER "Build the renderer for HiveEngine" ON)
 
 if(BUILD_RENDERER)
     add_subdirectory(third_party/freetype-2.10.0)
 
-    set(Vulkan_INCLUDE_DIR /home/calper//SDK/Vulkan-1.1.106.0/x86_64)
+    set(Vulkan_INCLUDE_DIR /home/calper//SDK/Vulkan-1.1.108.0/x86_64)
     IF (WIN32)
-        set(Vulkan_INCLUDE_DIR C:/VulkanSDK/1.1.106.0/)
+        set(Vulkan_INCLUDE_DIR C:/VulkanSDK/1.1.108.0/)
+    ELIF (APPLE)
+        set(Vulkan_INCLUDE_DIR /Users/calper/Projects/vulkansdk-macos-1.1.108.0/macOS)
     ENDIF()
+    set(Vulkan_INCLUDE_DIR /Users/calper/Projects/vulkansdk-macos-1.1.108.0/macOS)
 
     find_package(Vulkan REQUIRED)
     message(STATUS "==== VULKAN_FOUND: " ${Vulkan_FOUND})
@@ -31,11 +34,13 @@ endif(BUILD_RENDERER)
 
 set(GLM_TEST_ENABLE OFF CACHE BOOL "" FORCE)
 add_subdirectory(third_party/glm)
+add_subdirectory(third_party/spdlog-1.3.1)
+add_subdirectory(third_party/assimp-4.1.0)
+set(ASSIMP_INCLUDE_DIR third_party/assimp-4.1.0/include ${CMAKE_BINARY_DIR}/third_party/assimp-4.1.0/include)
 
-set(SOURCES src/HiveEngine.cpp include/HiveEngine/LODSquare.h src/LODSquare.cpp include/HiveEngine/DynamicSphere.h include/HiveEngine/RadialGenerator.h src/RadialGenerator.cpp include/HiveEngine/Texture.h src/DynamicSphere.cpp include/HiveEngine/Entity.h src/Entity.cpp include/HiveEngine/Utilities.h src/Utilities.cpp include/HiveEngine/Common.h src/Common.cpp include/HiveEngine/Mesh.h include/HiveEngine/Buffer.hpp include/HiveEngine/stb/stb_image.h)
-
+set(SOURCES src/HiveEngine.cpp include/HiveEngine/LODSquare.h src/LODSquare.cpp include/HiveEngine/DynamicSphere.h include/HiveEngine/RadialGenerator.h src/RadialGenerator.cpp include/HiveEngine/Texture.h src/DynamicSphere.cpp include/HiveEngine/PhysicalEntity.h src/PhysicalEntity.cpp include/HiveEngine/Utilities.h src/Utilities.cpp include/HiveEngine/Common.h src/Common.cpp include/HiveEngine/Mesh.h include/HiveEngine/Buffer.hpp include/HiveEngine/stb/stb_image.h include/HiveEngine/Texture.h src/Texture.cpp include/HiveEngine/noise.h src/noise.cpp src/Context.cpp include/HiveEngine/Context.h)
 if(BUILD_RENDERER)
-    set(SOURCES ${SOURCES} include/HiveEngine/Renderer/Context.h src/Renderer/Context.cpp include/HiveEngine/Renderer/Directive.h src/Renderer/Directive.cpp include/HiveEngine/Renderer/StandardDirective.h src/Renderer/StandardDirective.cpp include/HiveEngine/Renderer/vk_mem_alloc.h include/HiveEngine/Renderer/Drawing.h src/Renderer/Drawing.cpp include/HiveEngine/Renderer/LineDrawing.h src/Renderer/LineDrawing.cpp  src/Texture.cpp include/HiveEngine/Renderer/GlyphDrawing.h src/Renderer/GlyphDrawing.cpp include/HiveEngine/Renderer/Camera.h src/Renderer/Camera.cpp include/HiveEngine/Renderer/FontManager.h src/Renderer/FontManager.cpp src/Renderer/TextDrawing.cpp include/HiveEngine/Renderer/TextDrawing.h)
+    set(SOURCES ${SOURCES} include/HiveEngine/Renderer/Context.h src/Renderer/Context.cpp include/HiveEngine/Renderer/Directive.h src/Renderer/Directive.cpp include/HiveEngine/Renderer/StandardDirective.h src/Renderer/StandardDirective.cpp include/HiveEngine/Renderer/vk_mem_alloc.h include/HiveEngine/Renderer/Drawing.h src/Renderer/Drawing.cpp include/HiveEngine/Renderer/LineDrawing.h src/Renderer/LineDrawing.cpp  src/Texture.cpp include/HiveEngine/Renderer/GlyphDrawing.h src/Renderer/GlyphDrawing.cpp include/HiveEngine/Renderer/Camera.h src/Renderer/Camera.cpp include/HiveEngine/Renderer/FontManager.h src/Renderer/FontManager.cpp src/Renderer/TextDrawing.cpp include/HiveEngine/Renderer/TextDrawing.h src/Renderer/AABBDrawing.cpp include/HiveEngine/Renderer/AABBDrawing.h)
     file(GLOB_RECURSE GLSL_SOURCE_FILES
             "shaders/*.frag"
             "shaders/*.vert"
@@ -60,15 +65,19 @@ if(BUILD_RENDERER)
 endif(BUILD_RENDERER)
 
 include_directories(include)
+include_directories(${ASSIMP_INCLUDE_DIR})
+message(STATUS "Assimp: " ${ASSIMP_INCLUDE_DIR})
+
+include_directories(include)
 
 message(STATUS "Sources:    " ${SOURCES})
 add_library(HiveEngine STATIC ${SOURCES})
 target_compile_features(HiveEngine PUBLIC cxx_std_17)
 
+target_link_libraries(HiveEngine PUBLIC assimp)
 target_link_libraries(HiveEngine PUBLIC glm)
-IF(WIN32)
-
-ELSE()
+target_link_libraries(HiveEngine PUBLIC spdlog)
+IF(LINUX)
     target_link_libraries(HiveEngine PUBLIC stdc++fs)
 ENDIF()
 
@@ -81,6 +90,8 @@ if(BUILD_RENDERER)
     target_link_libraries(HiveEngine PUBLIC ${Vulkan_LIBRARIES})
     add_dependencies(HiveEngine Shaders)
 endif(BUILD_RENDERER)
+
+add_dependencies(HiveEngine copy-data-folder)
 
 add_subdirectory(test)
 

@@ -7,7 +7,7 @@
 #include <HiveEngine/Renderer/Context.h>
 #include <HiveEngine/Renderer/Directive.h>
 
-namespace HiveEngineRenderer {
+namespace HiveEngine::Renderer {
 
     VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT *pCreateInfo,
                                           const VkAllocationCallbacks *pAllocator,
@@ -45,7 +45,9 @@ namespace HiveEngineRenderer {
     }
 
     void Context::init_window() {
-        glfwInit();
+        if(!glfwInit()){
+            throw std::runtime_error("glfw init failure");
+        };
 
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
         //glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
@@ -122,9 +124,12 @@ namespace HiveEngineRenderer {
         uint32_t glfwExtensionCount = 0;
         const char **glfwExtensions;
         glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+        if(glfwExtensions == nullptr) {
+            throw std::runtime_error("glfw extensions is nullptr -> " + std::to_string(glfwVulkanSupported()==GLFW_TRUE));
+        }
 
         std::vector<const char *> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
-
+    
         if (!validation_layers.empty()) {
             extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
         }
@@ -139,10 +144,11 @@ namespace HiveEngineRenderer {
 
         VkApplicationInfo appInfo = {};
         appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+        appInfo.pNext = NULL;
         appInfo.pApplicationName = "HiveEngine";
-        appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
+        appInfo.applicationVersion = 1;
         appInfo.pEngineName = "HiveEngine";
-        appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
+        appInfo.engineVersion = 1;
         appInfo.apiVersion = VK_API_VERSION_1_0;
 
         VkInstanceCreateInfo createInfo = {};
@@ -178,7 +184,7 @@ namespace HiveEngineRenderer {
             bool layerFound = false;
 
             for (const auto &layerProperties : availableLayers) {
-                //std::cout << layerProperties.layerName << std::endl;
+                std::cout << layerProperties.layerName << std::endl;
                 if (strcmp(layerName, layerProperties.layerName) == 0) {
                     layerFound = true;
                     break;

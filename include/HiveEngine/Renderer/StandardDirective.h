@@ -7,7 +7,7 @@
 
 #include <HiveEngine/Renderer/Directive.h>
 
-namespace HiveEngineRenderer {
+namespace HiveEngine::Renderer {
     class Drawing;
 
     class StandardDirective : public Directive {

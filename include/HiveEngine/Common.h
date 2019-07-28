@@ -6,6 +6,7 @@
 #define HIVEENGINE_COMMON_H
 
 #include <glm/glm.hpp>
+#include <array>
 
 namespace HiveEngine {
     struct Point {
@@ -57,6 +58,19 @@ namespace HiveEngine {
         AABB();
 
         bool collides(AABB other);
+    };
+
+    class DAABB {
+    public:
+        glm::dvec3 min{};
+        glm::dvec3 max{};
+
+        DAABB();
+
+        bool collides(DAABB other);
+        void add(glm::dvec3 point);
+        void combine(DAABB other);
+
     };
 
 }
