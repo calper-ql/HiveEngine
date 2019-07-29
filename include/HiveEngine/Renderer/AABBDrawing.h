@@ -2,33 +2,35 @@
 // Created by calper on 5/7/19.
 //
 
-#ifndef HIVEENGINE_LINEDRAWING_H
-#define HIVEENGINE_LINEDRAWING_H
+#ifndef HIVEENGINE_AABBDRAWING_H
+#define HIVEENGINE_AABBDRAWING_H
 
 #include <HiveEngine/Renderer/Drawing.h>
 #include <HiveEngine/Common.h>
-#include <HiveEngine/Buffer.hpp>
+#include <HiveEngine/Renderer/GPUBuffer.hpp>
 #include <HiveEngine/Renderer/Camera.h>
 
 namespace HiveEngine::Renderer {
+
     class AABBDrawing : public Drawing {
     public:
-        Buffer<HiveEngine::DAABB> line_buffer;
+        Buffer<DAABB> daabb_buffer;
+        Buffer<int> significance_buffer;
+        Buffer<glm::vec3> proto_box_buffer;
+        Buffer<CameraPackage> camera_buffer;
+        Buffer<glm::vec3> offset_buffer;
 
-        VmaAllocation point_allocation = nullptr;
-        VkBuffer vk_point_buffer = nullptr;
-
-        VmaAllocation state_allocation = nullptr;
-        VkBuffer vk_state_buffer = nullptr;
-
-        VmaAllocation camera_allocation = nullptr;
-        VkBuffer vk_camera_buffer = nullptr;
-
+        GPUBuffer<DAABB> daabb_gpu_buffer;
+        GPUBuffer<int> significance_gpu_buffer;
+        GPUBuffer<glm::vec3> proto_box_gpu_buffer;
+        GPUBuffer<CameraPackage> camera_gpu_buffer;
+        GPUBuffer<glm::vec3> offset_gpu_buffer;
+        
         VkPipeline graphicsPipeline;
         VkPipelineLayout pipelineLayout;
 
         std::array<VkVertexInputBindingDescription, 1> bindingDescriptions = {};
-        std::array<VkVertexInputAttributeDescription, 2> attributeDescriptions = {};
+        std::array<VkVertexInputAttributeDescription, 4> attributeDescriptions = {};
 
         VkDescriptorPool descriptorPool;
         VkDescriptorSetLayout descriptorSetLayout;
@@ -50,4 +52,4 @@ namespace HiveEngine::Renderer {
     };
 }
 
-#endif //HIVEENGINE_LINEDRAWING_H
+#endif //HIVEENGINE_AABBDRAWING_H

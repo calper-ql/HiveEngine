@@ -77,12 +77,7 @@ namespace HiveEngine::Renderer {
     }
 
     void Context::main_loop() {
-        //while (!glfwWindowShouldClose(window)) {
-
         draw_frame();
-        //}
-
-        //vkDeviceWaitIdle(device);
     }
 
     void Context::cleanup() {
@@ -116,8 +111,6 @@ namespace HiveEngine::Renderer {
         vkDestroyInstance(instance, nullptr);
 
         glfwDestroyWindow(window);
-
-        glfwTerminate();
     }
 
     std::vector<const char *> getRequiredExtensions(std::vector<const char *> validation_layers) {

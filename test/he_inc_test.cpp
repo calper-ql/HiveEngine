@@ -10,6 +10,7 @@
 #include <HiveEngine/Renderer/GlyphDrawing.h>
 #include <HiveEngine/Renderer/FontManager.h>
 #include <HiveEngine/Renderer/TextDrawing.h>
+#include <HiveEngine/Renderer/AABBDrawing.h>
 
 #include <random>
 
@@ -20,26 +21,18 @@ int main(int argc, char* argv[]){
     HiveEngine::Renderer::Camera camera;
     camera.set_position({0.0, 0.0, -3.30});
 
-    //auto statue_texture = HiveEngine::load_texture("../data/statue.jpg");
-    //std::cout << "Statue texture:" << std::endl;
-    //std::cout << "width:   " << statue_texture.width << std::endl;
-    //std::cout << "height:  " << statue_texture.height << std::endl;
-    //std::cout << "channel: " << statue_texture.channel << std::endl;
-
     HiveEngine::Renderer::Context context;
     auto test_directive = new HiveEngine::Renderer::StandardDirective(&context);
     auto line_drawing = new HiveEngine::Renderer::LineDrawing(test_directive, &camera);
     auto line_drawing_2 = new HiveEngine::Renderer::LineDrawing(test_directive);
 
+    auto daabb_drawing = new HiveEngine::Renderer::AABBDrawing(test_directive, &camera);
+
     HiveEngine::Renderer::FontManager font_manager;
-    font_manager.load_font("expanse", "../data/TheExpanse.ttf");
-    font_manager.load_font("ffdin", "../data/ffdin.ttf");
+    font_manager.load_font("expanse", "../data/fonts/TheExpanse.ttf");
+    font_manager.load_font("ffdin", "../data/fonts/ffdin.ttf");
 
     auto text_drawing = new HiveEngine::Renderer::TextDrawing(test_directive, &font_manager, "ffdin");
-
-    test_directive->register_drawing(line_drawing);
-    test_directive->register_drawing(text_drawing);
-    test_directive->register_drawing(line_drawing_2);
 
     HiveEngine::Line text_line;
     text_line.a.color = {1.0, 1.0, 1.0, 1.0};
@@ -89,6 +82,7 @@ int main(int argc, char* argv[]){
     for (int i = 250; i < 500; ++i) {
         line_drawing->line_buffer.remove(i);
     }
+
 
 
     try {

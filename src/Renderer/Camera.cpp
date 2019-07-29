@@ -3,6 +3,8 @@
 //
 
 #include <HiveEngine/Renderer/Camera.h>
+#include <HiveEngine/HiveEngine.h>
+#include <iostream>
 
 namespace HiveEngine::Renderer {
 
@@ -14,14 +16,18 @@ namespace HiveEngine::Renderer {
         return width / (float) height;
     }
 
-    HiveEngine::Renderer::Camera::Camera() {
+    Camera::Camera() {
         orientation = glm::quat(glm::vec3(0, 0, 0));
-        set_perspective(90, 1, 0.1, 1000.0);
-        traverse_modifier = 0.01;
+        set_perspective(PI_HALF, 1, 0.01, 10000.0);
+        traverse_modifier = 0.001;
         rotate_modifier = 1000.0;
     }
 
     void Camera::set_perspective(float fov, float ratio, float near_, float far_) {
+        this->fov = fov;
+        this->ratio = ratio;
+        this->near_ = near_;
+        this->far_ = far_;
         this->perspective = glm::perspective(fov, ratio, near_, far_);
     }
 
@@ -48,11 +54,18 @@ namespace HiveEngine::Renderer {
     }
 
     CameraPackage Camera::get_package() {
+        CameraPackage cp = get_package_no_perspective();
+        cp.view = perspective * cp.view;
+        return cp;
+    }
+
+    CameraPackage Camera::get_package_no_perspective(){
         CameraPackage cp = {};
-        cp.apply = 1;
-        //cp.position = position;
-        //cp.view = perspective * glm::translate(glm::mat4_cast(orientation), position);
-        cp.view = perspective * glm::translate(glm::mat4_cast(orientation), position);
+        cp.apply = apply;
+        cp.fov = fov;
+        cp.view = glm::translate(glm::mat4_cast(orientation), position);
+        cp.view_rot = glm::mat3_cast(orientation);
+        cp.pos = position;
         return cp;
     }
 
@@ -70,19 +83,19 @@ namespace HiveEngine::Renderer {
             position -= glm::vec3(glm::row(glm::mat4_cast(orientation), 0)) * traverse_modifier;
         }
         if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
-            position += glm::vec3(glm::row(glm::mat4_cast(orientation), 1)) * traverse_modifier;
-        }
-        if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
             position -= glm::vec3(glm::row(glm::mat4_cast(orientation), 1)) * traverse_modifier;
+        }
+        if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) {
+            position += glm::vec3(glm::row(glm::mat4_cast(orientation), 1)) * traverse_modifier;
         }
     }
 
     void Camera::get_user_movement(GLFWwindow *window) {
         if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) {
-            roll(-1.0 / rotate_modifier);
+            roll(1.0 / rotate_modifier);
         }
         if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) {
-            roll(1.0 / rotate_modifier);
+            roll(-1.0 / rotate_modifier);
         }
 
         if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
@@ -94,7 +107,7 @@ namespace HiveEngine::Renderer {
             } else {
                 double dx = x - last_m_pos.x;
                 double dy = y - last_m_pos.y;
-                pitch(-dy / rotate_modifier);
+                pitch(dy / rotate_modifier);
                 yaw(dx / rotate_modifier);
             }
             last_m_pos.x = x;
@@ -104,7 +117,24 @@ namespace HiveEngine::Renderer {
             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
             m_press = 0;
         }
+
+        if(__mouse_wheel > 0.0) {
+            traverse_modifier *=1.1;
+            __mouse_wheel = 0.0;
+        }
+        if(__mouse_wheel < 0.0) {
+            traverse_modifier *=0.9;
+            __mouse_wheel = 0.0;
+        }
+
     }
 
+    void Camera::set_ratio(float ratio) {
+        this->ratio = ratio;
+        this->perspective = glm::perspective(fov, ratio, near_, far_);
+    }
+
+    void Camera::enable() {apply = 1;}
+    void Camera::disable() {apply = 0;}
 
 }

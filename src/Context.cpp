@@ -199,10 +199,10 @@ namespace HiveEngine {
 
         cntx->name = std::string(root->mName.C_Str());
 
-        std::cout << cntx->name << std::endl;
-        std::cout << mat3_to_str(cntx->physical_data()->rotation) << std::endl;
-        std::cout << "---" << std::endl;
-        std::cout << mat3_to_str(cntx->physical_data()->global_rotation) << std::endl;
+        //std::cout << cntx->name << std::endl;
+        //std::cout << mat3_to_str(cntx->physical_data()->rotation) << std::endl;
+        //std::cout << "---" << std::endl;
+        //std::cout << mat3_to_str(cntx->physical_data()->global_rotation) << std::endl;
 
         for (int i = 0; i < root->mNumMeshes; ++i) {
             cntx->scene_id = scene_id;

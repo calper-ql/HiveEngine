@@ -297,7 +297,6 @@ void HiveEngine::Renderer::LineDrawing::update() {
 
 void HiveEngine::Renderer::LineDrawing::draw(VkCommandBuffer cmd_buffer) {
     if (line_buffer.size() > 0) {
-        get_context()->wait_device();
         this->update();
 
         vkCmdBindPipeline(cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
@@ -332,4 +331,36 @@ void HiveEngine::Renderer::LineDrawing::cleanup() {
     vkDestroyPipelineLayout(get_context()->get_device(), pipelineLayout, nullptr);
     Drawing::cleanup();
 
+}
+
+namespace HiveEngine::Renderer {
+    LineDescription LineDrawing::add_line(glm::vec3 a, glm::vec4 ac, glm::vec3 b, glm::vec4 bc) {
+        Line data = {};
+        LineDescription ld = {};
+
+        data.a.position = a;
+        data.b.position = b;
+        data.a.color = ac;
+        data.b.color = bc;
+
+        ld.id = line_buffer.add(data);
+        return ld;
+    }
+
+    void LineDrawing::remove_line(LineDescription ld) {
+        Line data = {};
+        line_buffer.set(ld.id, data);
+        line_buffer.remove(ld.id);
+    }
+
+    LineDescription LineDrawing::add_line(Line line) {
+        Line data = line;
+        LineDescription ld = {};
+        ld.id = line_buffer.add(data);
+        return ld;
+    }
+
+    void LineDrawing::refresh_line(LineDescription ld, Line new_line) {
+        line_buffer.set(ld.id, new_line);
+    }
 }

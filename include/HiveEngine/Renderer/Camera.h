@@ -12,16 +12,18 @@
 #include <glm/gtc/matrix_access.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#define GLFW_INCLUDE_VULKAN
-
-#include <GLFW/glfw3.h>
+#include <HiveEngine/Renderer/Context.h>
 
 namespace HiveEngine::Renderer {
     float get_window_ratio(GLFWwindow *window);
 
     struct CameraPackage {
-        glm::mat4 view;
+        glm::mat4 view = {};
         int apply = 0;
+        float fov;
+
+        glm::mat3 view_rot;
+        glm::vec3 pos;
     };
 
     class Camera {
@@ -29,9 +31,15 @@ namespace HiveEngine::Renderer {
         glm::vec3 position;
         glm::quat orientation;
         glm::mat4 perspective;
+        float fov;
+        float ratio;
+        float near_;
+        float far_;
 
         int m_press = 0;
         glm::ivec2 last_m_pos;
+
+        int apply = 1;
 
     public:
         float traverse_modifier;
@@ -39,7 +47,9 @@ namespace HiveEngine::Renderer {
 
         Camera();
 
-        void set_perspective(float fov, float ratio, float near, float far);
+        void set_ratio(float ratio);
+
+        void set_perspective(float fov, float ratio, float near_, float far_);
 
         void set_position(glm::vec3 position);
 
@@ -53,9 +63,17 @@ namespace HiveEngine::Renderer {
 
         CameraPackage get_package();
 
+        CameraPackage get_package_no_perspective();
+
         void get_user_input(GLFWwindow *window);
 
         void get_user_movement(GLFWwindow *window);
+
+        void disable();
+
+        void enable();
+
+        float __mouse_wheel = 0.0;
     };
 
 }

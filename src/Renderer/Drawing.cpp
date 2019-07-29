@@ -11,6 +11,11 @@ namespace HiveEngine::Renderer {
             throw std::runtime_error("failure, drawing was passed a nullptr directive");
         }
         this->directive = directive;
+        //id = directive->register_drawing(this);
+    }
+
+    Drawing::~Drawing(){
+        //directive
     }
 
     void Drawing::enable() {

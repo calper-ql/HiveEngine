@@ -16,9 +16,12 @@ namespace HiveEngine::Renderer {
         bool enabled = true;
         bool inited = false;
         Directive *directive;
+        size_t id;
 
     public:
         Drawing(Directive *directive);
+
+        virtual ~Drawing();
 
         virtual void init(VkRenderPass render_pass);
 

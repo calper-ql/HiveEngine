@@ -10,6 +10,10 @@
 #include <HiveEngine/Renderer/Camera.h>
 
 namespace HiveEngine::Renderer {
+    struct LineDescription {
+        size_t id;
+    };
+
     class LineDrawing : public Drawing {
     public:
         HiveEngine::Buffer<HiveEngine::Line> line_buffer;
@@ -46,6 +50,14 @@ namespace HiveEngine::Renderer {
         void draw(VkCommandBuffer cmd_buffer) override;
 
         void cleanup() override;
+
+        LineDescription add_line(glm::vec3 a, glm::vec4 ac, glm::vec3 b, glm::vec4 bc);
+
+        LineDescription add_line(Line line);
+
+        void refresh_line(LineDescription ld, Line new_line);
+
+        void remove_line(LineDescription ld);
     };
 }
 
