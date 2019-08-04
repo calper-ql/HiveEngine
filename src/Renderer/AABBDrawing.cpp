@@ -13,29 +13,37 @@ AABBDrawing::AABBDrawing(Directive *directive, Camera *camera) : Drawing(directi
     bindingDescriptions[0].stride = sizeof(glm::vec3);
     bindingDescriptions[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
+    bindingDescriptions[1].binding = 1;
+    bindingDescriptions[1].stride = sizeof(DAABB);
+    bindingDescriptions[1].inputRate = VK_VERTEX_INPUT_RATE_INSTANCE;
+
+    bindingDescriptions[2].binding = 2;
+    bindingDescriptions[2].stride = sizeof(int);
+    bindingDescriptions[2].inputRate = VK_VERTEX_INPUT_RATE_INSTANCE;
+
     attributeDescriptions[0].binding = 0;
     attributeDescriptions[0].location = 0;
     attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
     attributeDescriptions[0].offset = 0;
 
-    attributeDescriptions[1].binding = 0;
+    attributeDescriptions[1].binding = 1;
     attributeDescriptions[1].location = 1;
     attributeDescriptions[1].format = VK_FORMAT_R64G64B64_SFLOAT;
     attributeDescriptions[1].offset = offsetof(HiveEngine::DAABB, min);
 
-    attributeDescriptions[2].binding = 0;
-    attributeDescriptions[2].location = 2;
+    attributeDescriptions[2].binding = 1;
+    attributeDescriptions[2].location = 3;
     attributeDescriptions[2].format = VK_FORMAT_R64G64B64_SFLOAT;
     attributeDescriptions[2].offset = offsetof(HiveEngine::DAABB, max);
 
-    attributeDescriptions[2].binding = 0;
-    attributeDescriptions[2].location = 2;
-    attributeDescriptions[2].format = VK_FORMAT_R32_SINT;
-    attributeDescriptions[2].offset = 0;
+    attributeDescriptions[3].binding = 2;
+    attributeDescriptions[3].location = 5;
+    attributeDescriptions[3].format = VK_FORMAT_R32_SINT;
+    attributeDescriptions[3].offset = 0;
 
     for (size_t i = 0; i < 24; i++)
         proto_box_buffer.add({});
-    auto lines = proto_box_buffer.get_data();
+    glm::vec3* lines = proto_box_buffer.get_ptr();
 
     lines[0] = {0, 0, 0};
     lines[1] = {1, 0, 0};
@@ -67,25 +75,15 @@ AABBDrawing::AABBDrawing(Directive *directive, Camera *camera) : Drawing(directi
     CameraPackage package;
     camera_buffer.add(package);
 
-    offset_buffer.add({0.0, 0.0, 0.0});
-
     significance_gpu_buffer.cpu_buffer = &significance_buffer;
     camera_gpu_buffer.cpu_buffer = &camera_buffer;
     daabb_gpu_buffer.cpu_buffer = &daabb_buffer;
     proto_box_gpu_buffer.cpu_buffer = &proto_box_buffer;
-    offset_gpu_buffer.cpu_buffer = &offset_buffer;
 
     significance_gpu_buffer.usage = (VkBufferUsageFlagBits)(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
     camera_gpu_buffer.usage = (VkBufferUsageFlagBits)(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
     daabb_gpu_buffer.usage = (VkBufferUsageFlagBits)(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
     proto_box_gpu_buffer.usage = (VkBufferUsageFlagBits)(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
-    offset_gpu_buffer.usage = (VkBufferUsageFlagBits)(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
-
-    significance_gpu_buffer.allocator = get_context()->get_allocator();
-    camera_gpu_buffer.allocator = get_context()->get_allocator();
-    daabb_gpu_buffer.allocator = get_context()->get_allocator();
-    proto_box_gpu_buffer.allocator = get_context()->get_allocator();
-    offset_gpu_buffer.allocator = get_context()->get_allocator();
 
     this->camera = camera;
 }
@@ -94,11 +92,9 @@ void AABBDrawing::init(VkRenderPass render_pass)
 {
     Drawing::init(render_pass);
 
-    std::array<VkDescriptorPoolSize, 2> poolSize = {};
+    std::array<VkDescriptorPoolSize, 1> poolSize = {};
     poolSize[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     poolSize[0].descriptorCount = 1;
-    poolSize[1].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    poolSize[1].descriptorCount = 1;
 
     VkDescriptorPoolCreateInfo poolInfo = {};
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -111,19 +107,12 @@ void AABBDrawing::init(VkRenderPass render_pass)
         throw std::runtime_error("failed to create descriptor pool!");
     }
 
-    std::array<VkDescriptorSetLayoutBinding, 2> bindings = {};
-
+    std::array<VkDescriptorSetLayoutBinding, 1> bindings = {};
     bindings[0].binding = 0;
     bindings[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     bindings[0].descriptorCount = 1;
     bindings[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
     bindings[0].pImmutableSamplers = nullptr;
-
-    bindings[1].binding = 1;
-    bindings[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    bindings[1].descriptorCount = 1;
-    bindings[1].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-    bindings[1].pImmutableSamplers = nullptr;
 
     VkDescriptorSetLayoutCreateInfo layoutInfo = {};
     layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -150,13 +139,13 @@ void AABBDrawing::init(VkRenderPass render_pass)
     VkPipelineShaderStageCreateInfo vertShaderStageInfo = {};
     vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
-    vertShaderStageInfo.module = get_context()->get_shaders()["line_shader.vert"];
+    vertShaderStageInfo.module = get_context()->get_shaders()["aabb_shader.vert"];
     vertShaderStageInfo.pName = "main";
 
     VkPipelineShaderStageCreateInfo fragShaderStageInfo = {};
     fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-    fragShaderStageInfo.module = get_context()->get_shaders()["line_shader.frag"];
+    fragShaderStageInfo.module = get_context()->get_shaders()["aabb_shader.frag"];
     fragShaderStageInfo.pName = "main";
 
     VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
@@ -260,6 +249,13 @@ void AABBDrawing::init(VkRenderPass render_pass)
 
 void AABBDrawing::update()
 {
+	VmaAllocator allocator = get_context()->get_allocator();
+
+	significance_gpu_buffer.allocator = allocator;
+	camera_gpu_buffer.allocator = allocator;
+	daabb_gpu_buffer.allocator = allocator;
+	proto_box_gpu_buffer.allocator = allocator;
+
     significance_gpu_buffer.update();
 
     daabb_gpu_buffer.update();
@@ -273,66 +269,49 @@ void AABBDrawing::update()
     camera_buffer.set(0, package);
     camera_gpu_buffer.update();
 
-    offset_gpu_buffer.update();
+    if(camera_gpu_buffer.recreated){
+        VkDescriptorBufferInfo cameraBufferInfo = {};
+        cameraBufferInfo.buffer = camera_gpu_buffer.buffer;
+        cameraBufferInfo.offset = 0;
+        cameraBufferInfo.range = sizeof(CameraPackage);
 
-    VkDescriptorBufferInfo cameraBufferInfo = {};
-    cameraBufferInfo.buffer = camera_gpu_buffer.buffer;
-    cameraBufferInfo.offset = 0;
-    cameraBufferInfo.range = sizeof(CameraPackage);
+        VkWriteDescriptorSet cameraWrite = {};
+        cameraWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        cameraWrite.dstSet = descriptorSet;
+        cameraWrite.dstBinding = 0;
+        cameraWrite.dstArrayElement = 0;
+        cameraWrite.descriptorCount = 1;
+        cameraWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        cameraWrite.pBufferInfo = &cameraBufferInfo;
+        cameraWrite.pImageInfo = nullptr;
+        cameraWrite.pTexelBufferView = nullptr;
 
-    VkWriteDescriptorSet cameraWrite = {};
-    cameraWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    cameraWrite.dstSet = descriptorSet;
-    cameraWrite.dstBinding = 0;
-    cameraWrite.dstArrayElement = 0;
-    cameraWrite.descriptorCount = 1;
-    cameraWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    cameraWrite.pBufferInfo = &cameraBufferInfo;
-    cameraWrite.pImageInfo = nullptr;
-    cameraWrite.pTexelBufferView = nullptr;
+        std::array<VkWriteDescriptorSet, 1> write_descriptors = {cameraWrite};
 
-    VkDescriptorBufferInfo offsetBufferInfo = {};
-    offsetBufferInfo.buffer = offset_gpu_buffer.buffer;
-    offsetBufferInfo.offset = 0;
-    offsetBufferInfo.range = sizeof(glm::vec3);
-
-    VkWriteDescriptorSet offsetWrite = {};
-    offsetWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    offsetWrite.dstSet = descriptorSet;
-    offsetWrite.dstBinding = 1;
-    offsetWrite.dstArrayElement = 0;
-    offsetWrite.descriptorCount = 1;
-    offsetWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    offsetWrite.pBufferInfo = &offsetBufferInfo;
-    offsetWrite.pImageInfo = nullptr;
-    offsetWrite.pTexelBufferView = nullptr;
-
-    std::array<VkWriteDescriptorSet, 2> write_descriptors = {cameraWrite, offsetWrite};
-
-    vkUpdateDescriptorSets(get_context()->get_device(), write_descriptors.size(), write_descriptors.data(), 0,
+        vkUpdateDescriptorSets(get_context()->get_device(), write_descriptors.size(), write_descriptors.data(), 0,
                                nullptr);
+
+        camera_gpu_buffer.recreated = false;
+    }
 
 }
 
-void AABBDrawing::draw(VkCommandBuffer cmd_buffer)
-{
-    update();
+void AABBDrawing::draw(VkCommandBuffer cmd_buffer) {
+	if (daabb_buffer.size() > 0) {
+        VkDeviceSize offsets[1] = {0};
+        update();
 
-    vkCmdBindPipeline(cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
+		vkCmdBindPipeline(cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
 
-    std::array<VkBuffer, 4> buffers =   {   proto_box_gpu_buffer.buffer,
-                                            daabb_gpu_buffer.buffer,
-                                            daabb_gpu_buffer.buffer,
-                                            significance_gpu_buffer.buffer
-                                        };
-    VkDeviceSize offsets[] = {0, 0, 0, 0};
-    vkCmdBindVertexBuffers(cmd_buffer, 0, 1, buffers.data(), offsets);
+        vkCmdBindVertexBuffers(cmd_buffer, 0, 1, &proto_box_gpu_buffer.buffer, offsets);
+        vkCmdBindVertexBuffers(cmd_buffer, 1, 1, &daabb_gpu_buffer.buffer, offsets);
+        vkCmdBindVertexBuffers(cmd_buffer, 2, 1, &significance_gpu_buffer.buffer, offsets);
 
-    vkCmdBindDescriptorSets(cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0,
-                                nullptr);
+		vkCmdBindDescriptorSets(cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0,
+			nullptr);
 
-    vkCmdDraw(cmd_buffer, 24, daabb_buffer.size(), 0, 0);
-
+        vkCmdDraw(cmd_buffer, 24, daabb_buffer.size(), 0, 0);
+	}
 }
 
 void AABBDrawing::cleanup()
@@ -346,7 +325,6 @@ void AABBDrawing::cleanup()
     proto_box_gpu_buffer.cleanup();
     proto_box_buffer.mark_changed();
 
-    offset_gpu_buffer.cleanup();
 
     vkDestroyDescriptorSetLayout(get_context()->get_device(), descriptorSetLayout, nullptr);
     vkDestroyDescriptorPool(get_context()->get_device(), descriptorPool, nullptr);

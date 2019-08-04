@@ -83,10 +83,10 @@ namespace HiveEngine::Renderer {
             position -= glm::vec3(glm::row(glm::mat4_cast(orientation), 0)) * traverse_modifier;
         }
         if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
-            position -= glm::vec3(glm::row(glm::mat4_cast(orientation), 1)) * traverse_modifier;
+            position += glm::vec3(glm::row(glm::mat4_cast(orientation), 1)) * traverse_modifier;
         }
         if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) {
-            position += glm::vec3(glm::row(glm::mat4_cast(orientation), 1)) * traverse_modifier;
+            position -= glm::vec3(glm::row(glm::mat4_cast(orientation), 1)) * traverse_modifier;
         }
     }
 
@@ -107,7 +107,7 @@ namespace HiveEngine::Renderer {
             } else {
                 double dx = x - last_m_pos.x;
                 double dy = y - last_m_pos.y;
-                pitch(dy / rotate_modifier);
+                pitch(-dy / rotate_modifier);
                 yaw(dx / rotate_modifier);
             }
             last_m_pos.x = x;

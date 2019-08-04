@@ -9,6 +9,9 @@
 #include <cmath>
 #include <vector>
 #include <string>
+#include <map>
+
+#include <HiveEngine/Common.h>
 
 #include <assimp/scene.h>
 
@@ -38,6 +41,7 @@ namespace HiveEngine {
     glm::mat3 ai_mesh_moment_of_inertia(aiMesh* mesh);
 
     std::string search_path(std::string folder_path, std::string filename);
+
 }
 
 

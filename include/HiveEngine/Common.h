@@ -7,6 +7,8 @@
 
 #include <glm/glm.hpp>
 #include <array>
+#include <vector>
+#include <assimp/mesh.h>
 
 namespace HiveEngine {
     struct Point {

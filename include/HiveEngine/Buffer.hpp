@@ -34,6 +34,13 @@ namespace HiveEngine {
         size_t expand_size = 1;
 
     public:
+		void copy(Buffer<T>* to_copy) {
+			mark_changed();
+			data = to_copy->data;
+			state = to_copy->state;
+			available = to_copy->available;
+		}
+
         std::pair<T, uint8_t> get_all(size_t index) {
             if (index >= data.size()) {
                 spdlog::error("Buffer was asked to retrieve an index out of range!");
@@ -82,6 +89,10 @@ namespace HiveEngine {
         size_t add(T item) {
             if (available.size() == 0) expand(expand_size);
             size_t index = available.front();
+			if (state[index]) {
+				spdlog::error("Buffer was asked to add but there was a memory problem!");
+				process_error();
+			}
             available.pop_front();
             data[index] = item;
             state[index] = 1;
@@ -112,6 +123,13 @@ namespace HiveEngine {
             std::memcpy((char*)data.data(), ptr, count*data_size);
             mark_changed();
         }
+
+        void flush(std::vector<T> vec){
+		    data = vec;
+		    state.clear();
+		    state.resize(vec.size(), 1);
+		    mark_changed();
+		}
 
         T* get_ptr(){
             return data.data();

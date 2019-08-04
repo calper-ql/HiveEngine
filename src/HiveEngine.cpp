@@ -4,6 +4,8 @@
 
 #include <HiveEngine/HiveEngine.h>
 
+#define GLM_FORECE_DEPTH_ZERO_TO_ONE
+
 namespace HiveEngine {
 
     double PI = 3.14159265359;

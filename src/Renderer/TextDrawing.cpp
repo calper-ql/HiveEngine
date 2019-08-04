@@ -10,18 +10,14 @@ namespace HiveEngine::Renderer {
         float highest_point = 0;
         float lowest_point = 0;
 
-        for (int i = 0; i < 128; ++i) {
+        for (int i = 0; i < 126; ++i) {
             auto glyph = font_manager->get_glyph(font_name, i);
-            if(glyph.texture.width == 0){
-                glyph.texture.width = 1;
-                glyph.texture.height = 1;
-                glyph.texture.channel = 1;
-                glyph.texture.data.resize(1, 0);
-            }
 
-            glyphs.push_back(glyph);
-            glyph_drawings.push_back(new GlyphDrawing(directive, glyph.texture));
-
+			glyphs.push_back(glyph);
+			auto gd = new GlyphDrawing(directive, glyph.texture);
+			glyph_drawings.push_back(gd);
+			gd->mark_parent_managed();
+			
             if(glyph.metrics.horiBearingY > highest_point) highest_point = glyph.metrics.horiBearingY;
             auto diff = glyph.metrics.height - glyph.metrics.horiBearingY;
             if(diff > lowest_point) lowest_point = diff;
@@ -32,38 +28,33 @@ namespace HiveEngine::Renderer {
     }
 
     TextDrawing::~TextDrawing() {
-        for(auto gd: glyph_drawings){
-            delete gd;
-        }
+        for(auto gd: glyph_drawings) delete gd;
     }
 
     void TextDrawing::init(VkRenderPass render_pass) {
         Drawing::init(render_pass);
 
-        auto size = text_descriptors.size();
-        for (size_t i = 0; i < size; ++i) {
-            if(text_descriptors.get_state(i)){
-                update_text(text_descriptors.get(i));
-            }
-        }
+		int total = 0;
+		for (int i = 0; i < glyph_drawings.size(); ++i) {
+			if (glyph_drawings[i]->textureAllocation) total++;
+		}
 
-        for (int i = 0; i < 128; ++i) {
-            if(glyphs[i].texture.width > 0) glyph_drawings[i]->init(render_pass);
-        }
+		for (int i = 0; i < glyph_drawings.size(); ++i) {
+			glyph_drawings[i]->init(render_pass);
+		}
     }
 
     void TextDrawing::draw(VkCommandBuffer cmd_buffer) {
         Drawing::draw(cmd_buffer);
-        for (int i = 0; i < 128; ++i) {
-            if(glyphs[i].texture.width > 0) glyph_drawings[i]->draw(cmd_buffer);
-        }
+		for (size_t i = 0; i < text_descriptors.size(); ++i) if (text_descriptors.get_state(i)) update_text(text_descriptors.get(i));
+        for (int i = 0; i < glyph_drawings.size(); ++i) glyph_drawings[i]->draw(cmd_buffer);
     }
 
     void TextDrawing::cleanup() {
         Drawing::cleanup();
-        for (int i = 0; i < 128; ++i) {
-            if(glyphs[i].texture.width > 0) glyph_drawings[i]->cleanup();
-        }
+		for (int i = 0; i < glyph_drawings.size(); ++i) {
+			glyph_drawings[i]->cleanup();
+		}
     }
 
     std::vector<ImageDescription> TextDrawing::__add_text(std::string str, glm::vec3 pos, float max_height, TextDescriptionState tds,
@@ -124,14 +115,15 @@ namespace HiveEngine::Renderer {
     }
 
     void TextDrawing::update_text(TextDescription td) {
-        for (int i = 0; i < td.str.size(); ++i) td.descriptors[i].glyph_drawing->remove_image(td.descriptors[i]);
+        for (int i = 0; i < td.descriptors.size(); ++i) td.descriptors[i].glyph_drawing->remove_image(td.descriptors[i]);
+		td.descriptors.clear();
         td.descriptors = __add_text(td.str, td.pos, td.max_height, td.tds, td.color);
         text_descriptors.set(td.id, td);
     }
 
     void TextDrawing::remove_text(TextDescription td) {
-        for (int i = 0; i < td.str.size(); ++i) td.descriptors[i].glyph_drawing->remove_image(td.descriptors[i]);
-        td.descriptors.clear();
+        for (int i = 0; i < td.descriptors.size(); ++i) td.descriptors[i].glyph_drawing->remove_image(td.descriptors[i]);
+		td.descriptors.clear();
         text_descriptors.set(td.id, td);
         text_descriptors.remove(td.id);
     }

@@ -28,7 +28,7 @@ void HiveEngine::Renderer::FontManager::load_font(std::string font_name, std::st
         std::runtime_error("Freetype could not load: " + path + "!");
     }
     faces[font_name] = face;
-    FT_Set_Pixel_Sizes(face, 0, 60*64);
+    FT_Set_Pixel_Sizes(face, 0, 4*64);
 }
 
 HiveEngine::Renderer::Glyph HiveEngine::Renderer::FontManager::get_glyph(std::string font_name, FT_ULong c) {

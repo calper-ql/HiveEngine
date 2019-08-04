@@ -91,10 +91,6 @@ namespace HiveEngine::Renderer {
 
         vkDestroyCommandPool(device, command_pool, nullptr);
 
-        for (auto directive: directives) {
-            delete directive;
-        }
-
         for (auto shader: shaders) {
             vkDestroyShaderModule(device, shader.second, nullptr);
         }
@@ -312,6 +308,7 @@ namespace HiveEngine::Renderer {
         }
 
         VkPhysicalDeviceFeatures deviceFeatures = {};
+        deviceFeatures.shaderFloat64 = VK_TRUE;
 
         VkDeviceCreateInfo createInfo = {};
         createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
@@ -654,7 +651,8 @@ namespace HiveEngine::Renderer {
 
         vkResetFences(device, 1, &inFlightFences[currentFrame]);
 
-        if (vkQueueSubmit(graphics_queue, 1, &submitInfo, inFlightFences[currentFrame]) != VK_SUCCESS) {
+		auto code = vkQueueSubmit(graphics_queue, 1, &submitInfo, inFlightFences[currentFrame]);
+        if (code != VK_SUCCESS) {
             throw std::runtime_error("failed to submit draw command buffer!");
         }
 
@@ -683,9 +681,10 @@ namespace HiveEngine::Renderer {
     }
 
     void Context::recreate_swap_chain() {
+		if (device == nullptr) return;
         vkDeviceWaitIdle(device);
 
-        cleanup_swap_chain();
+        if(swap_chain) cleanup_swap_chain();
 
         create_swap_chain();
         create_image_views();
@@ -704,6 +703,7 @@ namespace HiveEngine::Renderer {
         }
 
         vkDestroySwapchainKHR(device, swap_chain, nullptr);
+		swap_chain = nullptr;
     }
 
     void Context::mark_resized() {

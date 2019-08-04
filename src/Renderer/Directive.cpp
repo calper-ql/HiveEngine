@@ -3,6 +3,7 @@
 //
 
 #include <HiveEngine/Renderer/Directive.h>
+#include <HiveEngine/Renderer/Drawing.h>
 
 namespace HiveEngine::Renderer {
 
@@ -34,10 +35,20 @@ namespace HiveEngine::Renderer {
     }
 
     void Directive::cleanup() {
-
+		
     }
 
     glm::uvec2 Directive::get_size(){
         return size;
+    }
+
+    void Directive::register_drawing(Drawing *drawing) {
+        drawing->set_id(drawings.add(drawing));
+		get_context()->recreate_swap_chain();
+    }
+
+    void Directive::erase_drawing(Drawing *drawing) {
+		drawing->cleanup();
+        drawings.remove(drawing->get_id());
     }
 }

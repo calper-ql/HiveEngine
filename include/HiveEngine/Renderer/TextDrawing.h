@@ -45,7 +45,6 @@ namespace HiveEngine::Renderer{
         float total_height;
         float hanging_dist;
 
-        TextDrawing(Context* context, FontManager *font_manager, std::string font_name);
         virtual ~TextDrawing();
 
         TextDescription add_text(std::string str, glm::vec3 pos, float max_height, TextDescriptionState tds=CENTER,

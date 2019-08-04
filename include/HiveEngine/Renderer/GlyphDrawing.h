@@ -41,19 +41,19 @@ namespace HiveEngine::Renderer {
         VmaAllocation orientation_allocation = nullptr;
         VkBuffer orientation_buffer = nullptr;
 
+		HiveEngine::Texture texture;
+		VkImage textureImage = nullptr;
+		VmaAllocation textureAllocation = nullptr;
+
+		VkImageView imageView;
+		VkSampler textureSampler;
+
         VkPipeline graphicsPipeline;
         VkPipelineLayout pipelineLayout;
 
         VkDescriptorPool descriptorPool;
         VkDescriptorSetLayout descriptorSetLayout;
         VkDescriptorSet descriptorSet;
-
-        HiveEngine::Texture texture;
-        VkImage textureImage = nullptr;
-        VmaAllocation textureAllocation = nullptr;
-
-        VkImageView imageView;
-        VkSampler textureSampler;
 
         bool image_pushed = false;
 

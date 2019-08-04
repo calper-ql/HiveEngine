@@ -11,6 +11,7 @@
 #include <HiveEngine/Renderer/LineDrawing.h>
 #include <HiveEngine/Renderer/AABBDrawing.h>
 #include <HiveEngine/Utilities.h>
+#include <HiveEngine/Renderer/MeshDrawing.h>
 
 #include <assimp/Importer.hpp>      // C++ importer interface
 #include <assimp/scene.h>           // Output data structure
@@ -23,7 +24,7 @@ class RandomEntity : public HiveEngine::Node {
 public:
     RandomEntity(HiveEngine::Context *cntx, std::default_random_engine &re, Node* parent=nullptr) : Node(cntx, parent) {
         std::uniform_real_distribution<> real_d(-0.5, 0.5);
-        if(parent) real_d = std::uniform_real_distribution<>(-0.01, 0.01);
+        if(parent) real_d = std::uniform_real_distribution<>(-0.1, 0.1);
         std::uniform_real_distribution<> vel_d(-0.0014, 0.0014);
         if(parent) vel_d = std::uniform_real_distribution<>(-0.0000001, 0.0000001);
 
@@ -35,11 +36,11 @@ public:
         physical_data()->angular_velocity *= HiveEngine::generate_rotation_matrix('y', yrot(re));
         physical_data()->angular_velocity *= HiveEngine::generate_rotation_matrix('z', zrot(re));
 
-        physical_data()->position = {real_d(re) / 10.0, real_d(re), real_d(re)};
-        physical_data()->velocity = {vel_d(re) / 10.0, vel_d(re), vel_d(re)};
+        physical_data()->position = {real_d(re), real_d(re), real_d(re)};
+        physical_data()->velocity = {vel_d(re), vel_d(re), vel_d(re)};
 
         physical_data()->mass = 0.001;
-        physical_data()->radius = 0.01 / (float(get_level()+1));
+        physical_data()->radius = 0.1 / (float(get_level()+1));
 
         std::uniform_real_distribution<> child_possibility(0.0, 1.0);
         while(child_possibility(re) < 0.1 && get_level() < 4) {
@@ -86,8 +87,8 @@ int main(int argc, char *argv[]) {
     c1.radius = 30.0;
     c2.radius = 50.0;
 
-    for (int j = 0; j < 10000; ++j) {
-        //new RandomEntity(&c1, re);
+    for (int j = 0; j < 3000; ++j) {
+        new RandomEntity(&c1, re);
     }
 
     for (int j = 0; j < 50; ++j) {
@@ -99,29 +100,34 @@ int main(int argc, char *argv[]) {
                                                                                                  aiProcess_Triangulate            |
                                                                                                  aiProcess_JoinIdenticalVertices  |
                                                                                                  aiProcess_SortByPType);
-
     if(!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode){
         spdlog::error("Couldn't load scene");
         HiveEngine::process_error();
     }
 
+    auto meshes = HiveEngine::ai_scene_to_meshes(scene);
+
     HiveEngine::Renderer::Camera camera;
     camera.set_position({0.0, 0.0, -1.30});
-    camera.traverse_modifier = 0.07;
+    camera.traverse_modifier = 0.001;
 
     HiveEngine::Renderer::Context renderer_context;
-    auto test_directive = new HiveEngine::Renderer::StandardDirective(&renderer_context);
+    auto test_directive = HiveEngine::Renderer::StandardDirective(&renderer_context);
+
+    auto mesh_drawing_handler = new HiveEngine::Renderer::MeshDrawingHandler();
+    mesh_drawing_handler->add_scene(&test_directive, meshes, &camera);
+
+    c1.representation = mesh_drawing_handler;
 
     auto missile = c1.load_ai_node(scene, scene->mRootNode, 0);
 
-    //missile->physical_data()->velocity = {0.1, 0.0, 0.0};
+    missile->physical_data()->velocity = {0.1, 0.0, 0.0};
     missile->physical_data()->angular_velocity = HiveEngine::generate_rotation_matrix('z', HiveEngine::PI/10.0);
 
-    //HiveEngine::Renderer::AABBDrawing aabb_drawing_1(test_directive, &camera);
+    HiveEngine::Renderer::AABBDrawing aabb_drawing_1(&test_directive, &camera);
     //HiveEngine::Renderer::AABBDrawing aabb_drawing_2(test_directive, &camera);
 
-
-    HiveEngine::Renderer::LineDrawing line_drawing(test_directive, &camera);
+    HiveEngine::Renderer::LineDrawing line_drawing(&test_directive, &camera);
     HiveEngine::Line x_axis;
     x_axis.a.position = {0.0, 0.0, 0.0};
     x_axis.a.color = {1.0, 0.0, 0.0, 1.0};
@@ -144,10 +150,8 @@ int main(int argc, char *argv[]) {
     line_drawing.add_line(y_axis);
     line_drawing.add_line(z_axis);
 
-    test_directive->register_drawing(&line_drawing);
-
     try {
-        renderer_context.validation_layers.clear();
+        //renderer_context.validation_layers.clear();
         renderer_context.init_window();
         renderer_context.init_vulkan();
 
@@ -160,6 +164,9 @@ int main(int argc, char *argv[]) {
             c2.induce_next_step();
 
             c1.update_representation();
+
+			aabb_drawing_1.daabb_buffer.copy(&c1.node_bounding_box);
+			aabb_drawing_1.significance_buffer.copy(&c1.node_level);
 
             camera.get_user_movement(renderer_context.get_window());
             camera.get_user_input(renderer_context.get_window());

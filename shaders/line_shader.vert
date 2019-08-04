@@ -4,6 +4,9 @@
 layout(set=0, binding = 0) uniform CameraPackage {
     mat4 view;
     int apply;
+    float fov;
+    mat3 view_rot;
+    vec3 pos;
 } camera;
 
 layout(location = 0) in vec3 position;

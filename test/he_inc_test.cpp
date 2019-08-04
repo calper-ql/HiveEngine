@@ -26,13 +26,14 @@ int main(int argc, char* argv[]){
     auto line_drawing = new HiveEngine::Renderer::LineDrawing(test_directive, &camera);
     auto line_drawing_2 = new HiveEngine::Renderer::LineDrawing(test_directive);
 
-    auto daabb_drawing = new HiveEngine::Renderer::AABBDrawing(test_directive, &camera);
-
     HiveEngine::Renderer::FontManager font_manager;
     font_manager.load_font("expanse", "../data/fonts/TheExpanse.ttf");
     font_manager.load_font("ffdin", "../data/fonts/ffdin.ttf");
 
     auto text_drawing = new HiveEngine::Renderer::TextDrawing(test_directive, &font_manager, "ffdin");
+
+	auto glyph = font_manager.get_glyph("ffdin", 'C');
+	auto glyph_drawing = HiveEngine::Renderer::GlyphDrawing(test_directive, glyph.texture);
 
     HiveEngine::Line text_line;
     text_line.a.color = {1.0, 1.0, 1.0, 1.0};
@@ -46,12 +47,13 @@ int main(int argc, char* argv[]){
     text_drawing->add_text("The Expanse", {0.0, 0.0, 0.0}, 0.1);
 
     std::default_random_engine g;
-    std::uniform_real_distribution<float> d(-0.3f, 0.3f);
+    std::uniform_real_distribution<float> d(-1.0f, 1.0f);
     std::uniform_real_distribution<float> c(0.0f, 1.0f);
 
     glm::vec3 last_point = {-0.9, d(g), d(g)};
     glm::vec4 last_color = {c(g), c(g), c(g), 1.0f};
     int size = 1000;
+
     for (int i = 0; i < size; ++i) {
         glm::vec3 next_point = last_point + glm::vec3(1.8f/(float)size, d(g), d(g));
         glm::vec4 next_color = {c(g), c(g), c(g), 1.0f};
@@ -83,7 +85,8 @@ int main(int argc, char* argv[]){
         line_drawing->line_buffer.remove(i);
     }
 
-
+	std::uniform_int_distribution<int> tdc(300, 2000);
+	std::vector < HiveEngine::Renderer::ImageDescription > ids;
 
     try {
         context.validation_layers.clear();
@@ -97,26 +100,26 @@ int main(int argc, char* argv[]){
             glfwPollEvents();
             context.main_loop();
 
-            for (int i = 0; i < 2; ++i) {
-                auto size = line_drawing->line_buffer.size();
-                auto idx = rand()%size;
-                if(line_drawing->line_buffer.get_state(idx))
-                line_drawing->line_buffer.remove(idx);
-            }
+			for (size_t i = 0; i < ids.size(); i++) {
+				glyph_drawing.remove_image(ids[i]);
+			}
+			ids.clear();
 
-            for (int i = 0; i < 1; ++i) {
-                HiveEngine::Line line;
-                glm::vec4 next_color = {c(g), c(g), c(g), 1.0f};
-                line.a.position = glm::vec3(d(g), d(g), d(g));
-                line.b.position = glm::vec3(d(g), d(g), d(g));
-                line.a.color = next_color;
-                line.b.color = next_color;
-                line_drawing->line_buffer.add(line);
-            }
+			size_t k = tdc(g);
+			for (size_t i = 0; i < k; i++) {
+				glm::vec3 td = { c(g), c(g), c(g) };
+				td = glm::normalize(td);
+				auto id = glyph_drawing.add_image_lower_left({ d(g), d(g), d(g) }, 0.001, 0.001, glm::vec4(td, 1.0));
+				ids.push_back(id);
+			}
+
+			//std::cout << text_drawing->text_descriptors.size() << std::endl;
+			//std::cout << text_drawing->text_descriptors.size() << std::endl;
 
         }
 
         context.wait_device();
+		//delete text_drawing;
         context.cleanup();
     } catch (const std::exception& e){
         std::cerr << e.what() << std::endl;

@@ -18,18 +18,16 @@ namespace HiveEngine::Renderer {
         Buffer<int> significance_buffer;
         Buffer<glm::vec3> proto_box_buffer;
         Buffer<CameraPackage> camera_buffer;
-        Buffer<glm::vec3> offset_buffer;
 
         GPUBuffer<DAABB> daabb_gpu_buffer;
         GPUBuffer<int> significance_gpu_buffer;
         GPUBuffer<glm::vec3> proto_box_gpu_buffer;
         GPUBuffer<CameraPackage> camera_gpu_buffer;
-        GPUBuffer<glm::vec3> offset_gpu_buffer;
         
         VkPipeline graphicsPipeline;
         VkPipelineLayout pipelineLayout;
 
-        std::array<VkVertexInputBindingDescription, 1> bindingDescriptions = {};
+        std::array<VkVertexInputBindingDescription, 3> bindingDescriptions = {};
         std::array<VkVertexInputAttributeDescription, 4> attributeDescriptions = {};
 
         VkDescriptorPool descriptorPool;

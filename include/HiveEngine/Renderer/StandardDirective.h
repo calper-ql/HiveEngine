@@ -15,8 +15,6 @@ namespace HiveEngine::Renderer {
         VkRenderPass renderPass;
         std::vector<VkFramebuffer> swapChainFramebuffers;
         std::vector<VkCommandBuffer> commandBuffers;
-        std::vector<Drawing *> drawings;
-
 
         StandardDirective(Context *context);
 
@@ -30,7 +28,6 @@ namespace HiveEngine::Renderer {
 
         VkCommandBuffer get_command_buffer(uint8_t idx) override;
 
-        void register_drawing(Drawing *drawing);
     };
 }
 

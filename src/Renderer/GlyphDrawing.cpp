@@ -10,12 +10,11 @@ namespace HiveEngine::Renderer {
 
     GlyphDrawing::GlyphDrawing(Directive *directive, HiveEngine::Texture texture) : Drawing(directive) {
         this->texture = texture;
-
-
     }
 
     void GlyphDrawing::init(VkRenderPass render_pass) {
         Drawing::init(render_pass);
+		if (texture.width == 0 || texture.height == 0 || texture.channel == 0) return;
 
         VkImageCreateInfo imageInfo = {};
         imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -39,12 +38,16 @@ namespace HiveEngine::Renderer {
         }
 
         VmaAllocationCreateInfo textureCreateInfo = {};
-        textureCreateInfo.usage = VMA_MEMORY_USAGE_UNKNOWN;
+        textureCreateInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
 
         auto res = vmaCreateImage(get_context()->get_allocator(), &imageInfo, &textureCreateInfo,
                                   &textureImage, &textureAllocation, nullptr);
 
         if(res != VK_SUCCESS){
+			std::cout << " == " << std::endl;
+			std::cout << texture.width << std::endl;
+			std::cout << texture.height << std::endl;
+			std::cout << texture.channel << std::endl;
             throw std::runtime_error("Glyph could not create img...");
         }
 
@@ -64,11 +67,6 @@ namespace HiveEngine::Renderer {
         attributeDescriptions[1].location = 1;
         attributeDescriptions[1].format = VK_FORMAT_R32G32_SFLOAT;
         attributeDescriptions[1].offset = offsetof(ImageOrientation, f0uv);
-
-        //attributeDescriptions[2].binding = 0;
-        //attributeDescriptions[2].location = 2;
-        //attributeDescriptions[2].format = VK_FORMAT_R32G32B32A32_SFLOAT;
-        //attributeDescriptions[2].offset = offsetof(ImageOrientation, c0);
 
         std::array<VkDescriptorPoolSize, 1> poolSizes = {};
         poolSizes[0].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -224,47 +222,99 @@ namespace HiveEngine::Renderer {
     }
 
     void GlyphDrawing::update() {
+		if (!image_pushed) {
+			image_pushed = true;
+
+			get_context()->transition_image_layout(textureImage, VK_FORMAT_R8G8B8A8_UNORM,
+				VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+			get_context()->copy_texture_to_image(texture, textureImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+			get_context()->transition_image_layout(textureImage, VK_FORMAT_R8G8B8A8_UNORM,
+				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+			VkImageViewCreateInfo viewInfo = {};
+			viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+			viewInfo.image = textureImage;
+			viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+			viewInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
+			viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			viewInfo.subresourceRange.baseMipLevel = 0;
+			viewInfo.subresourceRange.levelCount = 1;
+			viewInfo.subresourceRange.baseArrayLayer = 0;
+			viewInfo.subresourceRange.layerCount = 1;
+
+			if (texture.channel == 3) {
+				viewInfo.format = VK_FORMAT_R8G8B8_UNORM;
+			}
+			else if (texture.channel == 1) {
+				viewInfo.format = VK_FORMAT_R8_UNORM;
+			}
+
+			if (vkCreateImageView(get_context()->get_device(), &viewInfo, nullptr, &imageView) != VK_SUCCESS) {
+				throw std::runtime_error("failed to create texture image view!");
+			}
+
+			VkSamplerCreateInfo samplerInfo = {};
+			samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+			samplerInfo.magFilter = VK_FILTER_LINEAR;
+			samplerInfo.minFilter = VK_FILTER_LINEAR;
+			samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+			samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+			samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+			samplerInfo.anisotropyEnable = VK_FALSE;
+			samplerInfo.maxAnisotropy = 1;
+			samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+			samplerInfo.unnormalizedCoordinates = VK_FALSE;
+			samplerInfo.compareEnable = VK_FALSE;
+			samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+			samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+
+			if (vkCreateSampler(get_context()->get_device(), &samplerInfo, nullptr, &textureSampler) !=
+				VK_SUCCESS) {
+				throw std::runtime_error("failed to create texture sampler!");
+			}
+
+			VkDescriptorImageInfo imageInfo = {};
+			imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			imageInfo.imageView = imageView;
+			imageInfo.sampler = textureSampler;
+
+			VkWriteDescriptorSet imageWrite = {};
+			imageWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			imageWrite.dstSet = descriptorSet;
+			imageWrite.dstBinding = 1;
+			imageWrite.dstArrayElement = 0;
+			imageWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+			imageWrite.descriptorCount = 1;
+			imageWrite.pImageInfo = &imageInfo;
+
+			std::array<VkWriteDescriptorSet, 1> write_descriptors = { imageWrite };
+
+			vkUpdateDescriptorSets(get_context()->get_device(), write_descriptors.size(), write_descriptors.data(), 0, nullptr);
+		}
+
         if (imos.is_changed() || orientation_buffer == nullptr) {
             vmaDestroyBuffer(get_context()->get_allocator(), orientation_buffer, orientation_allocation);
             orientation_buffer = nullptr;
             orientation_allocation = nullptr;
 
-            auto orientations = imos.get_data();
-
             VkBufferCreateInfo bufferInfo = {VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
             bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-            bufferInfo.size = sizeof(ImageOrientation) * orientations.size();
+            bufferInfo.size = sizeof(ImageOrientation) * imos.size();
 
             VmaAllocationCreateInfo allocInfo = {};
             allocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
             vmaCreateBuffer(get_context()->get_allocator(), &bufferInfo, &allocInfo, &orientation_buffer,
                             &orientation_allocation, nullptr);
 
-            if (!orientations.empty()) {
+            if (imos.size() > 0) {
                 void *data;
                 vmaMapMemory(get_context()->get_allocator(), orientation_allocation, &data);
-                memcpy(data, orientations.data(), sizeof(ImageOrientation) * orientations.size());
+                memcpy(data, imos.get_ptr(), bufferInfo.size);
                 vmaUnmapMemory(get_context()->get_allocator(), orientation_allocation);
             }
 
-            
-        VkDescriptorImageInfo imageInfo = {};
-        imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        imageInfo.imageView = imageView;
-        imageInfo.sampler = textureSampler;
-
-        VkWriteDescriptorSet imageWrite = {};
-        imageWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        imageWrite.dstSet = descriptorSet;
-        imageWrite.dstBinding = 1;
-        imageWrite.dstArrayElement = 0;
-        imageWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        imageWrite.descriptorCount = 1;
-        imageWrite.pImageInfo = &imageInfo;
-
-        std::array<VkWriteDescriptorSet, 1> write_descriptors = {imageWrite};
-
-        vkUpdateDescriptorSets(get_context()->get_device(), write_descriptors.size(), write_descriptors.data(), 0, nullptr);
+           
         }
         imos.mark_unchanged();
 
@@ -272,59 +322,10 @@ namespace HiveEngine::Renderer {
 
     void GlyphDrawing::draw(VkCommandBuffer cmd_buffer) {
         Drawing::draw(cmd_buffer);
+		if (texture.width == 0 || texture.height == 0 || texture.channel == 0) return;
+
         if (imos.size() > 0) {
-            if (!image_pushed) {
-                image_pushed = true;
-
-                get_context()->transition_image_layout(textureImage, VK_FORMAT_R8G8B8A8_UNORM,
-                                                       VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-                get_context()->copy_texture_to_image(texture, textureImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-                get_context()->transition_image_layout(textureImage, VK_FORMAT_R8G8B8A8_UNORM,
-                                                       VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                                                       VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-
-                VkImageViewCreateInfo viewInfo = {};
-                viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-                viewInfo.image = textureImage;
-                viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-                viewInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
-                viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-                viewInfo.subresourceRange.baseMipLevel = 0;
-                viewInfo.subresourceRange.levelCount = 1;
-                viewInfo.subresourceRange.baseArrayLayer = 0;
-                viewInfo.subresourceRange.layerCount = 1;
-
-                if(texture.channel == 3){
-                    viewInfo.format = VK_FORMAT_R8G8B8_UNORM;
-                } else if(texture.channel == 1){
-                    viewInfo.format = VK_FORMAT_R8_UNORM;
-                }
-
-                if (vkCreateImageView(get_context()->get_device(), &viewInfo, nullptr, &imageView) != VK_SUCCESS) {
-                    throw std::runtime_error("failed to create texture image view!");
-                }
-
-                VkSamplerCreateInfo samplerInfo = {};
-                samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-                samplerInfo.magFilter = VK_FILTER_LINEAR;
-                samplerInfo.minFilter = VK_FILTER_LINEAR;
-                samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-                samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-                samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-                samplerInfo.anisotropyEnable = VK_FALSE;
-                samplerInfo.maxAnisotropy = 1;
-                samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
-                samplerInfo.unnormalizedCoordinates = VK_FALSE;
-                samplerInfo.compareEnable = VK_FALSE;
-                samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
-                samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-
-                if (vkCreateSampler(get_context()->get_device(), &samplerInfo, nullptr, &textureSampler) !=
-                    VK_SUCCESS) {
-                    throw std::runtime_error("failed to create texture sampler!");
-                }
-            }
-
+            
             this->update();
 
             vkCmdBindPipeline(cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
@@ -341,14 +342,15 @@ namespace HiveEngine::Renderer {
 
     void GlyphDrawing::cleanup() {
         Drawing::cleanup();
+		if (texture.width == 0 || texture.height == 0 || texture.channel == 0) return;
+
+		vmaDestroyImage(get_context()->get_allocator(), textureImage, textureAllocation);
 
         if (image_pushed) {
             vkDestroyImageView(get_context()->get_device(), imageView, nullptr);
             vkDestroySampler(get_context()->get_device(), textureSampler, nullptr);
             image_pushed = false;
         }
-
-        vmaDestroyImage(get_context()->get_allocator(), textureImage, textureAllocation);
 
         vmaDestroyBuffer(get_context()->get_allocator(), orientation_buffer, orientation_allocation);
         orientation_buffer = nullptr;
@@ -446,7 +448,7 @@ namespace HiveEngine::Renderer {
     }
 
     GlyphDrawing::~GlyphDrawing() {
-
+		
     }
 
 

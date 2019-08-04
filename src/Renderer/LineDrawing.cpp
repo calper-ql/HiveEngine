@@ -20,16 +20,20 @@ HiveEngine::Renderer::LineDrawing::LineDrawing(HiveEngine::Renderer::Directive *
     attributeDescriptions[1].offset = offsetof(HiveEngine::Point, color);
 
     this->camera = camera;
+
+    CameraPackage package;
+    camera_buffer.add(package);
+    camera_gpu_buffer.cpu_buffer = &camera_buffer;
+    camera_gpu_buffer.usage = (VkBufferUsageFlagBits) (VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT |
+                                                       VK_BUFFER_USAGE_TRANSFER_DST_BIT);
 }
 
 void HiveEngine::Renderer::LineDrawing::init(VkRenderPass render_pass) {
     Drawing::init(render_pass);
 
-    std::array<VkDescriptorPoolSize, 2> poolSize = {};
+    std::array<VkDescriptorPoolSize, 1> poolSize = {};
     poolSize[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     poolSize[0].descriptorCount = 1;
-    poolSize[1].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-    poolSize[1].descriptorCount = 1;
 
     VkDescriptorPoolCreateInfo poolInfo = {};
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -41,19 +45,13 @@ void HiveEngine::Renderer::LineDrawing::init(VkRenderPass render_pass) {
         throw std::runtime_error("failed to create descriptor pool!");
     }
 
-    std::array<VkDescriptorSetLayoutBinding, 2> bindings = {};
+    std::array<VkDescriptorSetLayoutBinding, 1> bindings = {};
 
     bindings[0].binding = 0;
     bindings[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     bindings[0].descriptorCount = 1;
     bindings[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
     bindings[0].pImmutableSamplers = nullptr;
-
-    bindings[1].binding = 1;
-    bindings[1].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-    bindings[1].descriptorCount = 1;
-    bindings[1].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-    bindings[1].pImmutableSamplers = nullptr;
 
     VkDescriptorSetLayoutCreateInfo layoutInfo = {};
     layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -189,39 +187,18 @@ void HiveEngine::Renderer::LineDrawing::init(VkRenderPass render_pass) {
 void HiveEngine::Renderer::LineDrawing::update() {
     if (point_allocation == nullptr) line_buffer.mark_changed();
 
+    VmaAllocator allocator = get_context()->get_allocator();
+    camera_gpu_buffer.allocator = allocator;
+
     CameraPackage package;
-    if(camera){
-       package = camera->get_package();
-    }
-
-    if (vk_camera_buffer == nullptr) {
-
-        VkBufferCreateInfo bufferInfo = {VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
-        bufferInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-        bufferInfo.size = sizeof(package);
-
-        VmaAllocationCreateInfo allocInfo = {};
-        allocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
-
-        vmaCreateBuffer(get_context()->get_allocator(), &bufferInfo, &allocInfo, &vk_camera_buffer, &camera_allocation,
-                        nullptr);
-    }
-
-    {
-        void *data;
-
-        vmaMapMemory(get_context()->get_allocator(), camera_allocation, &data);
-        memcpy(data, &package, sizeof(package));
-        vmaUnmapMemory(get_context()->get_allocator(), camera_allocation);
-    }
+    if (camera)
+        package = camera->get_package();
+    camera_buffer.set(0, package);
+    camera_gpu_buffer.update();
 
     if (line_buffer.is_changed()) {
-        vmaDestroyBuffer(get_context()->get_allocator(), vk_point_buffer, point_allocation);
-        vmaDestroyBuffer(get_context()->get_allocator(), vk_state_buffer, state_allocation);
         point_allocation = nullptr;
         vk_point_buffer = nullptr;
-        state_allocation = nullptr;
-        vk_state_buffer = nullptr;
 
         auto points = line_buffer.get_data();
         auto states = line_buffer.get_state();
@@ -236,10 +213,6 @@ void HiveEngine::Renderer::LineDrawing::update() {
         vmaCreateBuffer(get_context()->get_allocator(), &bufferInfo, &allocInfo, &vk_point_buffer, &point_allocation,
                         nullptr);
 
-        bufferInfo.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-        bufferInfo.size = sizeof(int) * line_buffer.size();
-        vmaCreateBuffer(get_context()->get_allocator(), &bufferInfo, &allocInfo, &vk_state_buffer, &state_allocation,
-                        nullptr);
 
         if (line_buffer.size() > 0) {
             void *data;
@@ -247,14 +220,10 @@ void HiveEngine::Renderer::LineDrawing::update() {
             vmaMapMemory(get_context()->get_allocator(), point_allocation, &data);
             memcpy(data, points.data(), (size_t) sizeof(HiveEngine::Line) * line_buffer.size());
             vmaUnmapMemory(get_context()->get_allocator(), point_allocation);
-
-            vmaMapMemory(get_context()->get_allocator(), state_allocation, &data);
-            memcpy(data, states.data(), (size_t) sizeof(int) * line_buffer.size());
-            vmaUnmapMemory(get_context()->get_allocator(), state_allocation);
         }
 
         VkDescriptorBufferInfo cameraBufferInfo = {};
-        cameraBufferInfo.buffer = vk_camera_buffer;
+        cameraBufferInfo.buffer = camera_gpu_buffer.buffer;
         cameraBufferInfo.offset = 0;
         cameraBufferInfo.range = sizeof(CameraPackage);
 
@@ -269,23 +238,7 @@ void HiveEngine::Renderer::LineDrawing::update() {
         cameraWrite.pImageInfo = nullptr;
         cameraWrite.pTexelBufferView = nullptr;
 
-        VkDescriptorBufferInfo stateStorageBufferInfo = {};
-        stateStorageBufferInfo.buffer = vk_state_buffer;
-        stateStorageBufferInfo.offset = 0;
-        stateStorageBufferInfo.range = (size_t) sizeof(int) * line_buffer.size();
-
-        VkWriteDescriptorSet stateStorageWrite = {};
-        stateStorageWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        stateStorageWrite.dstSet = descriptorSet;
-        stateStorageWrite.dstBinding = 1;
-        stateStorageWrite.dstArrayElement = 0;
-        stateStorageWrite.descriptorCount = 1;
-        stateStorageWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-        stateStorageWrite.pBufferInfo = &stateStorageBufferInfo;
-        stateStorageWrite.pImageInfo = nullptr;
-        stateStorageWrite.pTexelBufferView = nullptr;
-
-        std::array<VkWriteDescriptorSet, 2> write_descriptors = {cameraWrite, stateStorageWrite};
+        std::array<VkWriteDescriptorSet, 1> write_descriptors = {cameraWrite};
 
         vkUpdateDescriptorSets(get_context()->get_device(), write_descriptors.size(), write_descriptors.data(), 0,
                                nullptr);
@@ -313,15 +266,10 @@ void HiveEngine::Renderer::LineDrawing::draw(VkCommandBuffer cmd_buffer) {
 
 void HiveEngine::Renderer::LineDrawing::cleanup() {
     vmaDestroyBuffer(get_context()->get_allocator(), vk_point_buffer, point_allocation);
-    vmaDestroyBuffer(get_context()->get_allocator(), vk_state_buffer, state_allocation);
     point_allocation = nullptr;
     vk_point_buffer = nullptr;
-    state_allocation = nullptr;
-    vk_state_buffer = nullptr;
 
-    vmaDestroyBuffer(get_context()->get_allocator(), vk_camera_buffer, camera_allocation);
-    vk_camera_buffer = nullptr;
-    camera_allocation = nullptr;
+    camera_gpu_buffer.cleanup();
 
     vkDestroyDescriptorSetLayout(get_context()->get_device(), descriptorSetLayout, nullptr);
     vkDestroyDescriptorPool(get_context()->get_device(), descriptorPool, nullptr);

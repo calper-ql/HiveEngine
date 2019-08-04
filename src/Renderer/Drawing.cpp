@@ -11,11 +11,11 @@ namespace HiveEngine::Renderer {
             throw std::runtime_error("failure, drawing was passed a nullptr directive");
         }
         this->directive = directive;
-        //id = directive->register_drawing(this);
+        directive->register_drawing(this);
     }
 
     Drawing::~Drawing(){
-        //directive
+        directive->erase_drawing(this);
     }
 
     void Drawing::enable() {
@@ -52,6 +52,22 @@ namespace HiveEngine::Renderer {
 
     void Drawing::draw(VkCommandBuffer cmd_buffer) {
 
+    }
+
+	bool Drawing::is_parent_managed() {
+		return parent_managed;
+	}
+
+	void Drawing::mark_parent_managed() {
+		parent_managed = true;
+	}
+
+    size_t Drawing::get_id() {
+        return this->id;
+    }
+
+    void Drawing::set_id(size_t id) {
+        this->id = id;
     }
 
 }

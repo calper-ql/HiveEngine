@@ -15,6 +15,7 @@ namespace HiveEngine::Renderer {
     private:
         bool enabled = true;
         bool inited = false;
+		bool parent_managed = false;
         Directive *directive;
         size_t id;
 
@@ -37,9 +38,17 @@ namespace HiveEngine::Renderer {
 
         virtual bool is_inited();
 
+		virtual bool is_parent_managed();
+
+		virtual void mark_parent_managed();
+
         virtual Context *get_context();
 
         virtual Directive *get_directive();
+
+        void set_id(size_t id);
+
+        size_t get_id();
     };
 }
 

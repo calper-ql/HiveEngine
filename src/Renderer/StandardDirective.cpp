@@ -86,8 +86,11 @@ namespace HiveEngine::Renderer {
             throw std::runtime_error("failed to allocate command buffers!");
         }
 
-        for (auto drawing: drawings) {
-            drawing->init(renderPass);
+        for (int i = 0; i < drawings.size(); ++i) {
+            if(drawings.get_state(i)) {
+                auto drawing = drawings.get(i);
+                if(!drawing->is_parent_managed()) drawing->init(renderPass);
+            }
         }
     }
 
@@ -113,9 +116,12 @@ namespace HiveEngine::Renderer {
 
         vkCmdBeginRenderPass(commandBuffers[idx], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-        for (auto drawing: drawings) {
-            if (drawing->is_enabled()) {
-                drawing->draw(commandBuffers[idx]);
+        for (int i = 0; i < drawings.size(); ++i) {
+            if(drawings.get_state(i)) {
+                auto drawing = drawings.get(i);
+                if (drawing->is_enabled() && drawing->is_inited()) {
+					if (!drawing->is_parent_managed()) drawing->draw(commandBuffers[idx]);
+                }
             }
         }
 
@@ -130,9 +136,12 @@ namespace HiveEngine::Renderer {
     }
 
     void StandardDirective::cleanup() {
-        for (auto drawing: drawings) {
-            drawing->cleanup();
-        }
+		for (int i = 0; i < drawings.size(); ++i) {
+			if (drawings.get_state(i)) {
+				auto drawing = drawings.get(i);
+				if (!drawing->is_parent_managed()) drawing->cleanup();
+			}
+		}
 
         for (auto framebuffer : swapChainFramebuffers) {
             vkDestroyFramebuffer(get_context()->get_device(), framebuffer, nullptr);
@@ -144,10 +153,4 @@ namespace HiveEngine::Renderer {
         vkDestroyRenderPass(get_context()->get_device(), renderPass, nullptr);
     }
 
-    void StandardDirective::register_drawing(Drawing *drawing) {
-        if (drawing == nullptr) {
-            throw std::runtime_error("failure, standart directive were passed a nullptr drawing");
-        }
-        this->drawings.push_back(drawing);
-    }
 }

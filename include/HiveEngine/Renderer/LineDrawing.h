@@ -8,6 +8,7 @@
 #include <HiveEngine/Renderer/Drawing.h>
 #include <HiveEngine/Buffer.hpp>
 #include <HiveEngine/Renderer/Camera.h>
+#include <HiveEngine/Renderer/GPUBuffer.hpp>
 
 namespace HiveEngine::Renderer {
     struct LineDescription {
@@ -21,11 +22,8 @@ namespace HiveEngine::Renderer {
         VmaAllocation point_allocation = nullptr;
         VkBuffer vk_point_buffer = nullptr;
 
-        VmaAllocation state_allocation = nullptr;
-        VkBuffer vk_state_buffer = nullptr;
-
-        VmaAllocation camera_allocation = nullptr;
-        VkBuffer vk_camera_buffer = nullptr;
+        Buffer<CameraPackage> camera_buffer;
+        GPUBuffer<CameraPackage> camera_gpu_buffer;
 
         VkPipeline graphicsPipeline;
         VkPipelineLayout pipelineLayout;

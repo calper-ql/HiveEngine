@@ -1,19 +1,18 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
 
-layout(set = 0, binding = 0) uniform CameraPackage {
+layout(location = 0) in vec3 position;
+layout(location = 1) in dvec3 min; // index after nyst be at least 2 higher ... https://vulkan-tutorial.com/Vertex_buffers/Vertex_input_description
+layout(location = 3) in dvec3 max;
+layout(location = 5) in int significance;
+
+layout(set=0, binding = 0) uniform CameraPackage {
     mat4 view;
     int apply;
+    float fov;
+    mat3 view_rot;
+    vec3 pos;
 } camera;
-
-layout(set = 0, binding = 1) uniform Offset {
-    dvec3 value;
-} offset;
-
-layout(location = 0) in vec3 position;
-layout(location = 1) in dvec3 min;
-layout(location = 2) in dvec3 max;
-layout(location = 3) in int significance;
 
 layout(location = 0) out vec4 fragColor;
 
@@ -37,8 +36,6 @@ void main() {
     } else {
         p.z = float(max.z);
     }
-
-    p += vec3(offset.value);
 
     if(camera.apply == 1) gl_Position = camera.view * (vec4(p, 1.0));
     else gl_Position = (vec4(p, 1.0));

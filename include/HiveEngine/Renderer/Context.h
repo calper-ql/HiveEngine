@@ -92,6 +92,8 @@ namespace HiveEngine::Renderer {
 
         void end_instant_command(VkCommandBuffer cmd);
 
+		void recreate_swap_chain();
+
     private:
         GLFWwindow *window;
 
@@ -100,14 +102,14 @@ namespace HiveEngine::Renderer {
         VkSurfaceKHR surface;
 
         VkPhysicalDevice physical_device = VK_NULL_HANDLE;
-        VkDevice device;
+        VkDevice device = nullptr;
 
         VkQueue graphics_queue;
         VkQueue present_queue;
 
         SwapChainSupportDetails details;
 
-        VkSwapchainKHR swap_chain;
+		VkSwapchainKHR swap_chain = nullptr;
         std::vector<VkImage> swap_chain_images;
         VkFormat swap_chain_image_format;
         VkExtent2D swap_chain_exent;
@@ -160,8 +162,7 @@ namespace HiveEngine::Renderer {
 
         void draw_frame();
 
-        void recreate_swap_chain();
-
+        
         void cleanup_swap_chain();
     };
 }
