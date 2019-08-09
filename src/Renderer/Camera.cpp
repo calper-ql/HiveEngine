@@ -18,7 +18,7 @@ namespace HiveEngine::Renderer {
 
     Camera::Camera() {
         orientation = glm::quat(glm::vec3(0, 0, 0));
-        set_perspective(PI_HALF, 1, 0.01, 10000.0);
+        set_perspective(PI_HALF, 1, 0.1, 1e12);
         traverse_modifier = 0.001;
         rotate_modifier = 1000.0;
     }
@@ -66,27 +66,29 @@ namespace HiveEngine::Renderer {
         cp.view = glm::translate(glm::mat4_cast(orientation), position);
         cp.view_rot = glm::mat3_cast(orientation);
         cp.pos = position;
+        cp.near_ = near_;
+        cp.far_ = far_;
         return cp;
     }
 
     void Camera::get_user_input(GLFWwindow *window) {
         if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
-            position += glm::vec3(glm::row(glm::mat4_cast(orientation), 2)) * traverse_modifier;
+            position += glm::dvec3(glm::row(glm::mat4_cast(orientation), 2)) * traverse_modifier;
         }
         if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
-            position -= glm::vec3(glm::row(glm::mat4_cast(orientation), 2)) * traverse_modifier;
+            position -= glm::dvec3(glm::row(glm::mat4_cast(orientation), 2)) * traverse_modifier;
         }
         if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
-            position += glm::vec3(glm::row(glm::mat4_cast(orientation), 0)) * traverse_modifier;
+            position += glm::dvec3(glm::row(glm::mat4_cast(orientation), 0)) * traverse_modifier;
         }
         if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
-            position -= glm::vec3(glm::row(glm::mat4_cast(orientation), 0)) * traverse_modifier;
+            position -= glm::dvec3(glm::row(glm::mat4_cast(orientation), 0)) * traverse_modifier;
         }
         if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
-            position += glm::vec3(glm::row(glm::mat4_cast(orientation), 1)) * traverse_modifier;
+            position += glm::dvec3(glm::row(glm::mat4_cast(orientation), 1)) * traverse_modifier;
         }
         if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) {
-            position -= glm::vec3(glm::row(glm::mat4_cast(orientation), 1)) * traverse_modifier;
+            position -= glm::dvec3(glm::row(glm::mat4_cast(orientation), 1)) * traverse_modifier;
         }
     }
 
@@ -136,5 +138,14 @@ namespace HiveEngine::Renderer {
 
     void Camera::enable() {apply = 1;}
     void Camera::disable() {apply = 0;}
+
+    void Camera::set_as_mouse_wheel_callback(GLFWwindow *window) {
+        glfwSetWindowUserPointer(window, this);
+        glfwSetScrollCallback(window, camera_scroll_callback);
+    }
+
+    void camera_scroll_callback(GLFWwindow *window, double xoffset, double yoffset) {
+        ((Camera*)glfwGetWindowUserPointer(window))->__mouse_wheel = yoffset;
+    }
 
 }

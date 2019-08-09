@@ -42,7 +42,7 @@ namespace HiveEngine {
             vertices[i] = ai_vec3d_to_glm(ai_mesh->mVertices[i]);
             normals[i] = ai_vec3d_to_glm(ai_mesh->mNormals[i]);
             if(ai_mesh->mTextureCoords[0])
-            uvs[i] = {ai_mesh->mTextureCoords[0][i].x, ai_mesh->mTextureCoords[0][i].y, ai_mesh->mTextureCoords[0][i].z};
+                uvs[i] = {ai_mesh->mTextureCoords[0][i].x, ai_mesh->mTextureCoords[0][i].y, ai_mesh->mTextureCoords[0][i].z};
         }
 
         indices.resize(ai_mesh->mNumFaces);
@@ -53,6 +53,7 @@ namespace HiveEngine {
         }
 
         __surface_area_value = calculate_surface_area();
+        calculate_moment_of_inertia();
     }
 
     double Mesh::surface_area(bool recalculate) {
@@ -60,13 +61,13 @@ namespace HiveEngine {
         return __surface_area_value;
     }
 
-    glm::mat3 Mesh::calculate_moment_of_inertia(glm::dvec3 position, glm::mat3 rotation, double mass) {
+    void Mesh::calculate_moment_of_inertia() {
         double total_area = surface_area();
 
         glm::mat3 moi = {};
+        glm::dvec3 com = {};
 
-        for (int i = 0; i < indices.size(); ++i) {
-            auto face = indices[i];
+        for (auto face : indices) {
             glm::dvec3 a = vertices[face.x];
             glm::dvec3 b = vertices[face.y];
             glm::dvec3 c = vertices[face.z];
@@ -74,7 +75,7 @@ namespace HiveEngine {
             auto area = triangle_area(a, b, c);
             auto area_ratio = area/total_area;
 
-            centroid = position + glm::dvec3(centroid * rotation);
+            com += centroid * (area_ratio);
 
             moi[0][0] += (area_ratio) * ((centroid.y * centroid.y) + (centroid.z * centroid.z));
             moi[1][1] += (area_ratio) * ((centroid.x * centroid.x) + (centroid.z * centroid.z));
@@ -90,7 +91,14 @@ namespace HiveEngine {
             moi[2][1] = -area_ratio * centroid.y * centroid.z;
         }
 
-        return moi;
+    }
+
+    glm::mat3 Mesh::get_moment_of_inertia() {
+        return moment_of_inertia;
+    }
+
+    glm::dvec3 Mesh::get_center_of_mass() {
+        return center_of_mass;
     }
 
     std::vector<Mesh> ai_scene_to_meshes(aiScene *scene) {

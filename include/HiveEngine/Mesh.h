@@ -11,8 +11,10 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 #include <HiveEngine/Texture.h>
+#include <HiveEngine/Common.h>
 
 namespace HiveEngine {
+
     class Mesh {
     public:
         std::vector<glm::vec3> vertices;
@@ -26,6 +28,10 @@ namespace HiveEngine {
         double calculate_surface_area();
         double __surface_area_value = 0;
 
+        glm::mat3 moment_of_inertia;
+        glm::dvec3 center_of_mass = {};
+
+        void calculate_moment_of_inertia();
     public:
         Mesh();
 
@@ -35,7 +41,9 @@ namespace HiveEngine {
 
         double surface_area(bool recalculate=false);
 
-        glm::mat3 calculate_moment_of_inertia(glm::dvec3 position, glm::mat3 rotation, double mass);
+        glm::mat3 get_moment_of_inertia();
+
+        glm::dvec3 get_center_of_mass();
 
     };
 

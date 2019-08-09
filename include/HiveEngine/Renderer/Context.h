@@ -94,6 +94,10 @@ namespace HiveEngine::Renderer {
 
 		void recreate_swap_chain();
 
+        VkImageView get_depth_image_view();
+
+        VkFormat find_depth_format();
+
     private:
         GLFWwindow *window;
 
@@ -127,6 +131,10 @@ namespace HiveEngine::Renderer {
         std::vector<VkSemaphore> renderFinishedSemaphores;
         std::vector<VkFence> inFlightFences;
 
+        VkImage depth_image = nullptr;
+        VmaAllocation depth_image_allocation = nullptr;
+        VkImageView depth_image_view = nullptr;
+
         VmaAllocator allocator;
 
         bool frame_buffer_resized;
@@ -150,6 +158,8 @@ namespace HiveEngine::Renderer {
 
         void create_allocator();
 
+        void create_depth_resources();
+
         void load_shaders();
 
         void init_directives_frame_buffer();
@@ -161,9 +171,12 @@ namespace HiveEngine::Renderer {
         void create_sync_objects();
 
         void draw_frame();
-
         
         void cleanup_swap_chain();
+
+        VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
+
+
     };
 }
 

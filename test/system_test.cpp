@@ -12,6 +12,7 @@
 #include <HiveEngine/Renderer/AABBDrawing.h>
 #include <HiveEngine/Utilities.h>
 #include <HiveEngine/Renderer/MeshDrawing.h>
+#include <HiveEngine/AssetManager.h>
 
 #include <assimp/Importer.hpp>      // C++ importer interface
 #include <assimp/scene.h>           // Output data structure
@@ -87,7 +88,7 @@ int main(int argc, char *argv[]) {
     c1.radius = 30.0;
     c2.radius = 50.0;
 
-    for (int j = 0; j < 3000; ++j) {
+    for (int j = 0; j < 300; ++j) {
         new RandomEntity(&c1, re);
     }
 
@@ -95,17 +96,8 @@ int main(int argc, char *argv[]) {
         new RandomEntity(&c2, re);
     }
 
-    Assimp::Importer importer;
-    aiScene* scene = (aiScene*)importer.ReadFile( "../data/kinetic_missile/kinetic_missile.fbx", aiProcess_CalcTangentSpace       |
-                                                                                                 aiProcess_Triangulate            |
-                                                                                                 aiProcess_JoinIdenticalVertices  |
-                                                                                                 aiProcess_SortByPType);
-    if(!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode){
-        spdlog::error("Couldn't load scene");
-        HiveEngine::process_error();
-    }
-
-    auto meshes = HiveEngine::ai_scene_to_meshes(scene);
+    HiveEngine::AssetManager am;
+    am.load_file("../data/kinetic_missile/kinetic_missile.fbx");
 
     HiveEngine::Renderer::Camera camera;
     camera.set_position({0.0, 0.0, -1.30});
@@ -115,19 +107,22 @@ int main(int argc, char *argv[]) {
     auto test_directive = HiveEngine::Renderer::StandardDirective(&renderer_context);
 
     auto mesh_drawing_handler = new HiveEngine::Renderer::MeshDrawingHandler();
-    mesh_drawing_handler->add_scene(&test_directive, meshes, &camera);
+    for (int i = 0; i < am.scenes.size(); ++i) {
+        mesh_drawing_handler->add_scene(&test_directive, am.scenes[i].meshes, &camera);
+    }
 
     c1.representation = mesh_drawing_handler;
 
-    auto missile = c1.load_ai_node(scene, scene->mRootNode, 0);
+    auto missile = am.scenes[0].context->root_nodes.get(0)->deep_copy(&c1);
 
     missile->physical_data()->velocity = {0.1, 0.0, 0.0};
     missile->physical_data()->angular_velocity = HiveEngine::generate_rotation_matrix('z', HiveEngine::PI/10.0);
 
-    HiveEngine::Renderer::AABBDrawing aabb_drawing_1(&test_directive, &camera);
+    //HiveEngine::Renderer::AABBDrawing aabb_drawing_1(&test_directive, &camera);
     //HiveEngine::Renderer::AABBDrawing aabb_drawing_2(test_directive, &camera);
 
     HiveEngine::Renderer::LineDrawing line_drawing(&test_directive, &camera);
+
     HiveEngine::Line x_axis;
     x_axis.a.position = {0.0, 0.0, 0.0};
     x_axis.a.color = {1.0, 0.0, 0.0, 1.0};
@@ -150,10 +145,24 @@ int main(int argc, char *argv[]) {
     line_drawing.add_line(y_axis);
     line_drawing.add_line(z_axis);
 
+    auto grid_lines = HiveEngine::generate_grid_lines_basic(1000);
+    for (auto line: grid_lines) line_drawing.add_line(line);
+
+    HiveEngine::Line test_line;
+    test_line.a.position = {-1e7, 1.0, 0.0};
+    test_line.a.color = {1.0, 0.0, 0.0, 1.0};
+    test_line.b.position = {1e7, 1.0, 0.0};
+    test_line.b.color = x_axis.a.color;
+
+    line_drawing.add_line(test_line);
+
+
     try {
         //renderer_context.validation_layers.clear();
         renderer_context.init_window();
         renderer_context.init_vulkan();
+
+        camera.set_as_mouse_wheel_callback(renderer_context.get_window());
 
         while(!glfwWindowShouldClose(renderer_context.get_window())){
             c1.calculate_next_step(60);
@@ -165,8 +174,8 @@ int main(int argc, char *argv[]) {
 
             c1.update_representation();
 
-			aabb_drawing_1.daabb_buffer.copy(&c1.node_bounding_box);
-			aabb_drawing_1.significance_buffer.copy(&c1.node_level);
+			//aabb_drawing_1.daabb_buffer.copy(&c1.node_bounding_box);
+			//aabb_drawing_1.significance_buffer.copy(&c1.node_level);
 
             camera.get_user_movement(renderer_context.get_window());
             camera.get_user_input(renderer_context.get_window());

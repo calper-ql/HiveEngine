@@ -12,7 +12,7 @@
 
 namespace HiveEngine {
     struct Point {
-        glm::vec3 position = {0.0, 0.0, 0.0};
+        glm::dvec3 position = {0.0, 0.0, 0.0};
         glm::vec4 color = {0.0, 0.0, 0.0, 0.0};
     };
 
@@ -43,13 +43,11 @@ namespace HiveEngine {
         EntityStepOutput();
     };
 
-    class CentralMass {
+    class MassData {
     public:
-        glm::dvec3 position;
-        double mass;
-        glm::dmat3 moment_of_inertia;
-
-        CentralMass();
+        glm::dvec3 position = {};
+        double mass = 0.0;
+        glm::dmat3 moment_of_inertia = {};
     };
 
     class AABB {

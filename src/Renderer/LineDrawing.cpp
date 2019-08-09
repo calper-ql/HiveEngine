@@ -12,10 +12,10 @@ HiveEngine::Renderer::LineDrawing::LineDrawing(HiveEngine::Renderer::Directive *
 
     attributeDescriptions[0].binding = 0;
     attributeDescriptions[0].location = 0;
-    attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
+    attributeDescriptions[0].format = VK_FORMAT_R64G64B64_SFLOAT;
     attributeDescriptions[0].offset = offsetof(HiveEngine::Point, position);
     attributeDescriptions[1].binding = 0;
-    attributeDescriptions[1].location = 1;
+    attributeDescriptions[1].location = 2;
     attributeDescriptions[1].format = VK_FORMAT_R32G32B32A32_SFLOAT;
     attributeDescriptions[1].offset = offsetof(HiveEngine::Point, color);
 
@@ -150,6 +150,18 @@ void HiveEngine::Renderer::LineDrawing::init(VkRenderPass render_pass) {
     colorBlending.blendConstants[2] = 0.0f;
     colorBlending.blendConstants[3] = 0.0f;
 
+    VkPipelineDepthStencilStateCreateInfo depthStencil = {};
+    depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+    depthStencil.depthTestEnable = VK_TRUE;
+    depthStencil.depthWriteEnable = VK_TRUE;
+    depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
+    depthStencil.depthBoundsTestEnable = VK_FALSE;
+    depthStencil.minDepthBounds = 0.0f; // Optional
+    depthStencil.maxDepthBounds = 1.0f; // Optional
+    depthStencil.stencilTestEnable = VK_FALSE;
+    depthStencil.front = {}; // Optional
+    depthStencil.back = {}; // Optional
+
     VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     pipelineLayoutInfo.setLayoutCount = 1;
@@ -171,6 +183,7 @@ void HiveEngine::Renderer::LineDrawing::init(VkRenderPass render_pass) {
     pipelineInfo.pRasterizationState = &rasterizer;
     pipelineInfo.pMultisampleState = &multisampling;
     pipelineInfo.pColorBlendState = &colorBlending;
+    pipelineInfo.pDepthStencilState = &depthStencil;
     pipelineInfo.layout = pipelineLayout;
     pipelineInfo.renderPass = render_pass;
     pipelineInfo.subpass = 0;

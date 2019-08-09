@@ -1,24 +1,25 @@
 #version 450
-#extension GL_ARB_separate_shader_objects : enable
 
 layout(set=0, binding = 0) uniform CameraPackage {
-    mat4 view;
+    dmat4 view;
     int apply;
     float fov;
-    mat3 view_rot;
-    vec3 pos;
+    dmat3 view_rot;
+    dvec3 pos;
+    double near;
+    double far;
 } camera;
 
-layout(location = 0) in vec3 position;
-layout(location = 1) in vec4 color;
+layout(location = 0) in dvec3 position;
+layout(location = 2) in vec4 color;
 
 layout(location = 0) out vec4 fragColor;
 
 void main() {
     if(camera.apply == 1){
-        gl_Position = (camera.view * vec4(position, 1.0));
+        gl_Position = vec4(camera.view * dvec4(position, 1.0));
     } else {
-        gl_Position = (vec4(position, 1.0));
+        gl_Position = vec4(dvec4(position, 1.0));
     }
     
     fragColor = color;

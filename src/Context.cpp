@@ -4,8 +4,7 @@
 
 #include <HiveEngine/Utilities.h>
 #include <iostream>
-#include "HiveEngine/Context.h"
-
+#include <HiveEngine/Context.h>
 
 namespace HiveEngine {
 
@@ -73,8 +72,10 @@ namespace HiveEngine {
     }
 
     void Node::calculate_next_step(unsigned ticks_per_second) {
+        if(parent == nullptr) calculate_mass_data();
+
         physical_data()->next_position = physical_data()->position + (physical_data()->velocity / (double) ticks_per_second);
-        glm::quat rot_quat = glm::pow(glm::quat_cast(physical_data()->angular_velocity), 1.0f / (float) ticks_per_second);
+        glm::dquat rot_quat = glm::pow(glm::quat_cast(physical_data()->angular_velocity), 1.0f / (double) ticks_per_second);
         physical_data()->next_rotation = physical_data()->rotation * glm::mat3_cast(rot_quat);
         calculate_next_global();
 
@@ -88,6 +89,7 @@ namespace HiveEngine {
         physical_data()->rotation = physical_data()->next_rotation;
         physical_data()->global_position = physical_data()->next_global_position;
         physical_data()->global_rotation = physical_data()->next_global_rotation;
+
         for (int i = 0; i < children.size(); ++i) {
             if(children.get_state(i)) children.get(i)->induce_next_step();
         }
@@ -95,8 +97,8 @@ namespace HiveEngine {
 
     void Node::calculate_current_global() {
         if(parent){
-            physical_data()->global_rotation = glm::dmat3(parent->physical_data()->global_rotation) * glm::dmat3(physical_data()->rotation);
-            physical_data()->global_position = (glm::dmat3(parent->physical_data()->global_rotation) * physical_data()->position) + parent->physical_data()->global_position;
+            physical_data()->global_rotation = parent->physical_data()->global_rotation * physical_data()->rotation;
+            physical_data()->global_position = parent->physical_data()->global_rotation * physical_data()->position + parent->physical_data()->global_position;
         } else {
             physical_data()->global_position = physical_data()->position;
             physical_data()->global_rotation = physical_data()->rotation;
@@ -106,7 +108,7 @@ namespace HiveEngine {
     void Node::calculate_next_global() {
         if(parent){
             physical_data()->next_global_rotation = parent->physical_data()->next_global_rotation * physical_data()->next_rotation;
-            physical_data()->next_global_position = (glm::dmat3(parent->physical_data()->next_global_rotation) * physical_data()->next_position) + parent->physical_data()->next_global_position;
+            physical_data()->next_global_position = parent->physical_data()->next_global_rotation * physical_data()->next_position + parent->physical_data()->next_global_position;
         } else {
             physical_data()->next_global_position = physical_data()->next_position;
             physical_data()->next_global_rotation = physical_data()->next_rotation;
@@ -182,6 +184,61 @@ namespace HiveEngine {
         }
     }
 
+    Node *Node::deep_copy(Context *new_context, Node* parent) {
+        Node* node = new Node(new_context, parent);
+
+        node->scene_id = scene_id;
+        node->mesh_id = mesh_id;
+        node->name = name;
+
+        *node->physical_data() = *physical_data();
+
+        for (int i = 0; i < children.size(); ++i) {
+            if(children.get_state(i)){
+                Node* child = children.get(i)->deep_copy(new_context, node);
+            }
+        }
+
+        return node;
+    }
+
+    void Node::apply_force(Force force) {
+        if(parent) parent->apply_force(force);
+        else{
+
+        }
+    }
+
+    MassData Node::calculate_mass_data() {
+        if(scene_id > -1 && mesh_id > -1 && representation_mass_data.mass == 0.0 && physical_data()->mass > 0){
+            if(context->asset_manager == nullptr){
+                spdlog::error("Asset manager is nullptr in context");
+                process_error();
+            }
+            representation_mass_data.position = context->asset_manager->scenes[scene_id].meshes[mesh_id].get_center_of_mass();
+            representation_mass_data.moment_of_inertia = context->asset_manager->scenes[scene_id].meshes[mesh_id].get_moment_of_inertia();
+            representation_mass_data.mass = physical_data()->mass;
+        }
+
+        glm::dmat3 rot = physical_data()->rotation;
+
+        auto local_m_data = representation_mass_data;
+        if(parent){
+            local_m_data.position = rot * local_m_data.position;
+            local_m_data.moment_of_inertia = rot * local_m_data.moment_of_inertia;
+        }
+        for (int i = 0; i < children.size(); ++i) {
+            if(children.get_state(i)) {
+                auto child = children.get(i);
+                auto child_m_data = child->calculate_mass_data();
+                local_m_data.position += rot * child_m_data.position;
+                local_m_data.moment_of_inertia += rot * child_m_data.moment_of_inertia;
+            }
+        }
+
+        return local_m_data;
+    }
+
     Node* Context::load_ai_node(aiScene *scene, aiNode *root, int scene_id, Node* parent) {
         glm::mat4 transform = ai_matrix_to_glm(root->mTransformation);
 
@@ -199,11 +256,6 @@ namespace HiveEngine {
 
         cntx->name = std::string(root->mName.C_Str());
 
-        //std::cout << cntx->name << std::endl;
-        //std::cout << mat3_to_str(cntx->physical_data()->rotation) << std::endl;
-        //std::cout << "---" << std::endl;
-        //std::cout << mat3_to_str(cntx->physical_data()->global_rotation) << std::endl;
-
         for (int i = 0; i < root->mNumMeshes; ++i) {
             cntx->scene_id = scene_id;
             cntx->mesh_id = root->mMeshes[i];
@@ -216,13 +268,16 @@ namespace HiveEngine {
         return cntx;
     }
 
-    Context::Context(System *system) {
-        this->system = system;
-        this->id = system->contexts.add(this);
+    Context::Context(System* system, AssetManager* asset_manager) {
+		if (system) {
+			this->system = system;
+			this->id = system->contexts.add(this);
+		}
+        this->asset_manager = asset_manager;
     }
 
     Context::~Context() {
-        this->system->contexts.remove(id);
+        if(system) system->contexts.remove(id);
         for (int i = 0; i < root_nodes.size(); ++i) {
             if(root_nodes.get_state(i)) delete root_nodes.get(i);
         }
@@ -252,6 +307,14 @@ namespace HiveEngine {
             representation->update_position(position);
             for (int i = 0; i < root_nodes.size(); ++i) {
                 if(root_nodes.get_state(i)) root_nodes.get(i)->update_representation();
+            }
+        }
+    }
+
+    void Context::copy_from(Context *other) {
+        for (int i = 0; i < other->root_nodes.size(); ++i) {
+            if(other->root_nodes.get_state(i)){
+                other->root_nodes.get(i)->deep_copy(this);
             }
         }
     }

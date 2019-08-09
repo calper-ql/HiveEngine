@@ -9,7 +9,7 @@
 #include <HiveEngine/Common.h>
 #include <HiveEngine/Renderer/GPUBuffer.hpp>
 #include <HiveEngine/Renderer/Camera.h>
-#include <HiveEngine/Mesh.h>
+#include <HiveEngine/AssetManager.h>
 #include <HiveEngine/Context.h>
 
 namespace HiveEngine::Renderer {

@@ -5,6 +5,9 @@
 #ifndef HIVEENGINE_CAMERA_H
 #define HIVEENGINE_CAMERA_H
 
+#define GLM_FORCE_RADIANS
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+
 #include <glm/glm.hpp>
 #include <glm/mat4x4.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -17,20 +20,23 @@
 namespace HiveEngine::Renderer {
     float get_window_ratio(GLFWwindow *window);
 
+    void camera_scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
+
     struct CameraPackage {
-        glm::mat4 view = {};
+        glm::dmat4 view = {};
         int apply = 0;
         float fov;
-
-        glm::mat3 view_rot;
-        glm::vec3 pos;
+        glm::dmat3 view_rot;
+        glm::dvec3 pos;
+        double near_;
+        double far_;
     };
 
     class Camera {
     private:
-        glm::vec3 position;
-        glm::quat orientation;
-        glm::mat4 perspective;
+        glm::dvec3 position;
+        glm::dquat orientation;
+        glm::dmat4 perspective;
         float fov;
         float ratio;
         float near_;
@@ -42,8 +48,8 @@ namespace HiveEngine::Renderer {
         int apply = 1;
 
     public:
-        float traverse_modifier;
-        float rotate_modifier;
+        double traverse_modifier;
+        double rotate_modifier;
 
         Camera();
 
@@ -72,6 +78,8 @@ namespace HiveEngine::Renderer {
         void disable();
 
         void enable();
+
+        void set_as_mouse_wheel_callback(GLFWwindow *window);
 
         float __mouse_wheel = 0.0;
     };

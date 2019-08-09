@@ -24,12 +24,6 @@ namespace HiveEngine {
         mass = 0.0f;
     }
 
-    CentralMass::CentralMass() {
-        position = glm::dvec3(0.0f, 0.0f, 0.0f);
-        mass = 0.0f;
-        moment_of_inertia = glm::dmat3(0.0f);
-    }
-
     AABB::AABB() {
         min = glm::dvec3(0.0f, 0.0f, 0.0f);
         max = glm::dvec3(0.0f, 0.0f, 0.0f);

@@ -7,11 +7,13 @@ layout(location = 3) in dvec3 max;
 layout(location = 5) in int significance;
 
 layout(set=0, binding = 0) uniform CameraPackage {
-    mat4 view;
+    dmat4 view;
     int apply;
     float fov;
-    mat3 view_rot;
-    vec3 pos;
+    dmat3 view_rot;
+    dvec3 pos;
+    double near;
+    double far;
 } camera;
 
 layout(location = 0) out vec4 fragColor;
@@ -37,7 +39,7 @@ void main() {
         p.z = float(max.z);
     }
 
-    if(camera.apply == 1) gl_Position = camera.view * (vec4(p, 1.0));
+    if(camera.apply == 1) gl_Position = vec4(camera.view * (dvec4(p, 1.0)));
     else gl_Position = (vec4(p, 1.0));
 
     if(significance == 0){
@@ -50,4 +52,6 @@ void main() {
         fragColor = vec4(0.0, 0.0, 1.0, 1.0);
     }
 
+    if(gl_Position.z < camera.near) gl_Position.z = float(camera.near);
+    if(gl_Position.z > camera.far) gl_Position.z = float(camera.far);
 }

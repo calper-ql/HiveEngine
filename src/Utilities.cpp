@@ -3,7 +3,6 @@
 //
 
 #include <HiveEngine/Utilities.h>
-#include <HiveEngine/PhysicalEntity.h>
 #include <filesystem>
 
 namespace HiveEngine {
@@ -189,5 +188,33 @@ namespace HiveEngine {
     std::string search_path(std::string folder_path, std::string filename){
         
         return "";
+    }
+
+    std::vector<Line> generate_grid_lines_basic(unsigned count) {
+        std::vector<Line> lines;
+
+        float min = -(count/2.0);
+        float max = count/2.0;
+
+        for (int i = 0; i < count; ++i) {
+            Line vert;
+            Line hori;
+
+            vert.a.position = {min, 0.0, min+i};
+            vert.b.position = {max, 0.0, min+i};
+            vert.a.color = {0.0, 0.0, 1.0, 1.0};
+            vert.b.color = {0.0, 0.0, 1.0, 1.0};
+
+            hori.a.position = {min+i, 0.0, min};
+            hori.b.position = {min+i, 0.0, max};
+            hori.a.color = {0.0, 0.0, 1.0, 1.0};
+            hori.b.color = {0.0, 0.0, 1.0, 1.0};
+
+            lines.push_back(vert);
+            lines.push_back(hori);
+
+        }
+
+        return lines;
     }
 }

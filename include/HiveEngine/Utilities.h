@@ -42,6 +42,7 @@ namespace HiveEngine {
 
     std::string search_path(std::string folder_path, std::string filename);
 
+    std::vector<Line> generate_grid_lines_basic(unsigned count);
 }
 
 

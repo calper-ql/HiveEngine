@@ -16,6 +16,7 @@
 #include <utility>
 #include <assimp/scene.h>
 #include <glm/gtx/quaternion.hpp>
+#include <HiveEngine/AssetManager.h>
 
 namespace HiveEngine {
     class System;
@@ -41,19 +42,20 @@ namespace HiveEngine {
         double radius = 0.0;
         double mass = 0.0;
         glm::dvec3 position = {};
-        glm::mat3 rotation = glm::mat3(1.0f);
+        glm::dmat3 rotation = glm::mat3(1.0f);
         glm::dvec3 global_position = {};
-        glm::mat3 global_rotation = glm::mat3(1.0f);
+        glm::dmat3 global_rotation = glm::mat3(1.0f);
 
         glm::dvec3 velocity = {};
-        glm::mat3 angular_velocity = glm::mat3(1.0f);
+        glm::dmat3 angular_velocity = glm::mat3(1.0f);
+
+        glm::dvec3 torque = {0.0, 0.0, 0.0};
 
         glm::dvec3 next_position = {};
-        glm::mat3 next_rotation = glm::mat3(1.0f);
+        glm::dmat3 next_rotation = glm::mat3(1.0f);
         glm::dvec3 next_global_position = {};
-        glm::mat3 next_global_rotation = glm::mat3(1.0f);
+        glm::dmat3 next_global_rotation = glm::mat3(1.0f);
     };
-
 
     class Node {
     public:
@@ -65,6 +67,7 @@ namespace HiveEngine {
 
         int scene_id = -1;
         int mesh_id = -1;
+        MassData representation_mass_data;
 
         Node* parent = nullptr;
         int parent_id = -1; // becomes id on context if parent is nullptr;
@@ -90,12 +93,18 @@ namespace HiveEngine {
         void add_children(Node* child);
         void set_parent(Node* parent);
 
+        MassData calculate_mass_data();
+
         NodePhysicalData* physical_data();
         unsigned get_level();
 
         void calculate_level();
 
         void print();
+
+        Node* deep_copy(Context* new_context, Node* parent=nullptr);
+
+        void apply_force(Force force);
     };
 
     class ContextRepresentation {
@@ -108,11 +117,12 @@ namespace HiveEngine {
 
     class Context {
     public:
-        size_t id;
+        size_t id = 0;
         glm::dvec3 position = {0.0, 0.0, 0.0};
         double radius = 0;
         System* system = nullptr;
         ContextRepresentation* representation = nullptr;
+        AssetManager* asset_manager = nullptr;
 
         Buffer<NodePhysicalData> node_physical_data;
         Buffer<int> node_level;
@@ -120,8 +130,10 @@ namespace HiveEngine {
 
         Buffer<Node*> root_nodes;
 
-        explicit Context(System* system);
+        explicit Context(System* system=nullptr, AssetManager* asset_manager=nullptr);
         virtual ~Context();
+
+		void copy_from(Context* other);
 
         void calculate_next_step(unsigned ticks_per_second=60);
         void calculate_bounding_boxes();
