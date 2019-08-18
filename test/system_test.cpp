@@ -115,47 +115,28 @@ int main(int argc, char *argv[]) {
 
     auto missile = am.scenes[0].context->root_nodes.get(0)->deep_copy(&c1);
 
-    missile->physical_data()->velocity = {0.1, 0.0, 0.0};
-    missile->physical_data()->angular_velocity = HiveEngine::generate_rotation_matrix('z', HiveEngine::PI/10.0);
+    missile->physical_data()->velocity = {0.01, 0.00, 0.0};
+    missile->physical_data()->angular_velocity = HiveEngine::generate_rotation_matrix('z', HiveEngine::PI/100.0);
+
+    HiveEngine::Force force;
+    force.leverage = {1.0, 0.0, 0.0};
+    force.force = {0.0, 100.0, 0.0};
+    force.is_relative = false;
+
+    missile->apply_force(force);
 
     //HiveEngine::Renderer::AABBDrawing aabb_drawing_1(&test_directive, &camera);
     //HiveEngine::Renderer::AABBDrawing aabb_drawing_2(test_directive, &camera);
 
     HiveEngine::Renderer::LineDrawing line_drawing(&test_directive, &camera);
 
-    HiveEngine::Line x_axis;
-    x_axis.a.position = {0.0, 0.0, 0.0};
-    x_axis.a.color = {1.0, 0.0, 0.0, 1.0};
-    x_axis.b.position = {0.1, 0.0, 0.0};
-    x_axis.b.color = x_axis.a.color;
-
-    HiveEngine::Line y_axis;
-    y_axis.a.position = {0.0, 0.0, 0.0};
-    y_axis.a.color = {0.0, 1.0, 0.0, 1.0};
-    y_axis.b.position = {0.0, 0.1, 0.0};
-    y_axis.b.color = y_axis.a.color;
-
-    HiveEngine::Line z_axis;
-    z_axis.a.position = {0.0, 0.0, 0.0};
-    z_axis.a.color = {0.0, 0.0, 1.0, 1.0};
-    z_axis.b.position = {0.0, 0.0, 0.1};
-    z_axis.b.color = z_axis.a.color;
-
-    line_drawing.add_line(x_axis);
-    line_drawing.add_line(y_axis);
-    line_drawing.add_line(z_axis);
-
     auto grid_lines = HiveEngine::generate_grid_lines_basic(1000);
     for (auto line: grid_lines) line_drawing.add_line(line);
 
-    HiveEngine::Line test_line;
-    test_line.a.position = {-1e7, 1.0, 0.0};
-    test_line.a.color = {1.0, 0.0, 0.0, 1.0};
-    test_line.b.position = {1e7, 1.0, 0.0};
-    test_line.b.color = x_axis.a.color;
+    c1.asset_manager = &am;
 
-    line_drawing.add_line(test_line);
-
+    HiveEngine::Renderer::TargetMarker tm_origin(&line_drawing);
+    HiveEngine::Renderer::TargetMarker tm_com(&line_drawing);
 
     try {
         //renderer_context.validation_layers.clear();
@@ -165,6 +146,8 @@ int main(int argc, char *argv[]) {
         camera.set_as_mouse_wheel_callback(renderer_context.get_window());
 
         while(!glfwWindowShouldClose(renderer_context.get_window())){
+
+
             c1.calculate_next_step(60);
             c2.calculate_next_step(60);
             c1.calculate_bounding_boxes();
@@ -174,13 +157,18 @@ int main(int argc, char *argv[]) {
 
             c1.update_representation();
 
+            tm_origin.set(missile->physical_data()->position, 0.1, {1.0, 1.0, 1.0, 1.0});
+            tm_com.set(
+                    missile->physical_data()->position + missile->physical_data()->center_of_mass/missile->physical_data()->total_mass,
+            1.1, {1.0, 0.0, 0.0, 1.0});
+
 			//aabb_drawing_1.daabb_buffer.copy(&c1.node_bounding_box);
 			//aabb_drawing_1.significance_buffer.copy(&c1.node_level);
 
             camera.get_user_movement(renderer_context.get_window());
             camera.get_user_input(renderer_context.get_window());
 
-            camera.set_perspective(90, HiveEngine::Renderer::get_window_ratio(renderer_context.get_window()), 0.0001, 1000.0);
+            camera.set_perspective(camera.get_fov(), HiveEngine::Renderer::get_window_ratio(renderer_context.get_window()), 0.0001, 1000.0);
             glfwPollEvents();
             renderer_context.main_loop();
         }

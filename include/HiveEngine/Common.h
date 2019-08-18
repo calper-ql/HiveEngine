@@ -21,6 +21,10 @@ namespace HiveEngine {
         Point b;
     };
 
+    struct LineDescription {
+        size_t id;
+    };
+
     class Force {
     public:
         glm::dvec3 leverage;

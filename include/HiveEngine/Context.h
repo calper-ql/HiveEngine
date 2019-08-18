@@ -49,12 +49,17 @@ namespace HiveEngine {
         glm::dvec3 velocity = {};
         glm::dmat3 angular_velocity = glm::mat3(1.0f);
 
-        glm::dvec3 torque = {0.0, 0.0, 0.0};
-
         glm::dvec3 next_position = {};
         glm::dmat3 next_rotation = glm::mat3(1.0f);
         glm::dvec3 next_global_position = {};
         glm::dmat3 next_global_rotation = glm::mat3(1.0f);
+
+        glm::dvec3 center_of_mass = {};
+        double total_mass = 0;
+        glm::dmat3 moment_of_inertia = {};
+
+        glm::dvec3 total_force = {};
+        glm::dvec3 total_torque = {0.0, 0.0, 0.0};
     };
 
     class Node {
@@ -93,7 +98,7 @@ namespace HiveEngine {
         void add_children(Node* child);
         void set_parent(Node* parent);
 
-        MassData calculate_mass_data();
+        void calculate_mass_data(Node* root=nullptr);
 
         NodePhysicalData* physical_data();
         unsigned get_level();
@@ -105,6 +110,8 @@ namespace HiveEngine {
         Node* deep_copy(Context* new_context, Node* parent=nullptr);
 
         void apply_force(Force force);
+
+        bool valid_representation();
     };
 
     class ContextRepresentation {

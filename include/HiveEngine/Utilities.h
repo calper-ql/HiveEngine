@@ -16,7 +16,7 @@
 #include <assimp/scene.h>
 
 namespace HiveEngine {
-    glm::mat3 generate_rotation_matrix(char axis, float angle); // angle is radians
+    glm::dmat3 generate_rotation_matrix(char axis, float angle); // angle is radians
 
     // https://stackoverflow.com/questions/29184311/how-to-rotate-a-skinned-models-bones-in-c-using-assimp
     glm::mat4 ai_matrix_to_glm(aiMatrix4x4& from);
@@ -43,6 +43,10 @@ namespace HiveEngine {
     std::string search_path(std::string folder_path, std::string filename);
 
     std::vector<Line> generate_grid_lines_basic(unsigned count);
+
+    std::vector<Line> generate_target_mark(glm::dvec3 pos, double radius, glm::vec4 color);
+
+    glm::dmat3 calculate_moment_of_inertia(glm::dvec3 point, double mass);
 }
 
 

@@ -28,7 +28,7 @@ namespace HiveEngine {
         auto meshes = HiveEngine::ai_scene_to_meshes(scene);
 
         Scene sscene;
-		sscene.context = new Context();
+		sscene.context = new Context(nullptr, this);
         sscene.meshes = meshes;
         sscene.context->load_ai_node(scene, scene->mRootNode, size);
         scenes.push_back(sscene);

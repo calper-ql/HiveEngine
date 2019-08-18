@@ -60,6 +60,7 @@ namespace HiveEngine::Renderer {
     }
 
     CameraPackage Camera::get_package_no_perspective(){
+        this->perspective = glm::perspective(fov, ratio, near_, far_);
         CameraPackage cp = {};
         cp.apply = apply;
         cp.fov = fov;
@@ -94,10 +95,10 @@ namespace HiveEngine::Renderer {
 
     void Camera::get_user_movement(GLFWwindow *window) {
         if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) {
-            roll(1.0 / rotate_modifier);
+            roll(-1.0 / rotate_modifier);
         }
         if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) {
-            roll(-1.0 / rotate_modifier);
+            roll(1.0 / rotate_modifier);
         }
 
         if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
@@ -121,11 +122,19 @@ namespace HiveEngine::Renderer {
         }
 
         if(__mouse_wheel > 0.0) {
-            traverse_modifier *=1.1;
+            if(glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS){
+                fov *= 1.01;
+            } else {
+                traverse_modifier *=1.1;
+            }
             __mouse_wheel = 0.0;
         }
         if(__mouse_wheel < 0.0) {
-            traverse_modifier *=0.9;
+            if(glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS){
+                fov *= 0.99;
+            } else {
+                traverse_modifier *= 0.9;
+            }
             __mouse_wheel = 0.0;
         }
 
@@ -142,6 +151,10 @@ namespace HiveEngine::Renderer {
     void Camera::set_as_mouse_wheel_callback(GLFWwindow *window) {
         glfwSetWindowUserPointer(window, this);
         glfwSetScrollCallback(window, camera_scroll_callback);
+    }
+
+    float Camera::get_fov() {
+        return fov;
     }
 
     void camera_scroll_callback(GLFWwindow *window, double xoffset, double yoffset) {

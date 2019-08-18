@@ -7,11 +7,11 @@
 
 namespace HiveEngine {
 
-    glm::mat3 generate_rotation_matrix(char axis, float angle) {
-        glm::mat3 mat(1.0);
+    glm::dmat3 generate_rotation_matrix(char axis, float angle) {
+        glm::dmat3 mat(1.0);
 
-        float c = cosf(angle);
-        float s = sinf(angle);
+        double c = cos(angle);
+        double s = sin(angle);
 
         if (axis == 'x' || axis == 'X') {
             mat[1][1] = c;
@@ -216,5 +216,49 @@ namespace HiveEngine {
         }
 
         return lines;
+    }
+
+    std::vector<Line> generate_target_mark(glm::dvec3 pos, double radius, glm::vec4 color) {
+        std::vector<Line> lines;
+        auto r = radius;
+
+        Line a, b, c;
+        a.a.color = color;
+        a.b.color = color;
+        a.a.position= pos + glm::dvec3(r, 0, 0);
+        a.b.position= pos + glm::dvec3(-r, 0, 0);
+        b.a.color = color;
+        b.b.color = color;
+        b.a.position= pos + glm::dvec3(0, r, 0);
+        b.b.position= pos + glm::dvec3(0, -r, 0);
+        c.a.color = color;
+        c.b.color = color;
+        c.a.position= pos + glm::dvec3(0, 0, r);
+        c.b.position= pos + glm::dvec3(0, 0, -r);
+
+        lines.push_back(a);
+        lines.push_back(b);
+        lines.push_back(c);
+
+        return lines;
+    }
+
+    glm::dmat3 calculate_moment_of_inertia(glm::dvec3 centroid, double area_ratio) {
+        glm::dmat3 moi;
+
+        moi[0][0] += (area_ratio) * ((centroid.y * centroid.y) + (centroid.z * centroid.z));
+        moi[1][1] += (area_ratio) * ((centroid.x * centroid.x) + (centroid.z * centroid.z));
+        moi[2][2] += (area_ratio) * ((centroid.x * centroid.x) + (centroid.y * centroid.y));
+
+        moi[0][1] += -area_ratio * centroid.x * centroid.y;
+        moi[1][0] += -area_ratio * centroid.x * centroid.y;
+
+        moi[0][2] += -area_ratio * centroid.x * centroid.z;
+        moi[2][0] += -area_ratio * centroid.x * centroid.z;
+
+        moi[1][2] += -area_ratio * centroid.y * centroid.z;
+        moi[2][1] += -area_ratio * centroid.y * centroid.z;
+
+        return  moi;
     }
 }

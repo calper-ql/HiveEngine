@@ -5,6 +5,8 @@
 #include <HiveEngine/Mesh.h>
 #include <HiveEngine/Utilities.h>
 
+#include <iostream>
+
 namespace HiveEngine {
 
     double Mesh::calculate_surface_area() {
@@ -15,7 +17,7 @@ namespace HiveEngine {
             total += t_area;
         }
 
-        return 0;
+        return total;
     }
 
     Mesh::Mesh() {
@@ -64,8 +66,18 @@ namespace HiveEngine {
     void Mesh::calculate_moment_of_inertia() {
         double total_area = surface_area();
 
-        glm::mat3 moi = {};
-        glm::dvec3 com = {};
+        glm::dmat3 moi = glm::dmat3(1.0);
+        glm::dvec3 com = {0.0, 0.0, 0.0};
+
+        for (auto face : indices) {
+            glm::dvec3 a = vertices[face.x];
+            glm::dvec3 b = vertices[face.y];
+            glm::dvec3 c = vertices[face.z];
+            glm::dvec3 centroid = triangle_centroid(a, b, c);
+            auto area = triangle_area(a, b, c);
+            auto area_ratio = area/total_area;
+            com += centroid * (area_ratio);
+        }
 
         for (auto face : indices) {
             glm::dvec3 a = vertices[face.x];
@@ -75,25 +87,18 @@ namespace HiveEngine {
             auto area = triangle_area(a, b, c);
             auto area_ratio = area/total_area;
 
-            com += centroid * (area_ratio);
+            centroid = centroid - com;
 
-            moi[0][0] += (area_ratio) * ((centroid.y * centroid.y) + (centroid.z * centroid.z));
-            moi[1][1] += (area_ratio) * ((centroid.x * centroid.x) + (centroid.z * centroid.z));
-            moi[2][2] += (area_ratio) * ((centroid.x * centroid.x) + (centroid.y * centroid.y));
-
-            moi[0][1] = -area_ratio * centroid.x * centroid.y;
-            moi[1][0] = -area_ratio * centroid.x * centroid.y;
-
-            moi[0][2] = -area_ratio * centroid.x * centroid.z;
-            moi[2][0] = -area_ratio * centroid.x * centroid.z;
-
-            moi[1][2] = -area_ratio * centroid.y * centroid.z;
-            moi[2][1] = -area_ratio * centroid.y * centroid.z;
+            moi += HiveEngine::calculate_moment_of_inertia(centroid, area_ratio);
         }
 
+        moment_of_inertia = moi;
+        center_of_mass = com;
+
+        std::cout << HiveEngine::dvec3_to_str(center_of_mass) << std::endl;
     }
 
-    glm::mat3 Mesh::get_moment_of_inertia() {
+    glm::dmat3 Mesh::get_moment_of_inertia() {
         return moment_of_inertia;
     }
 

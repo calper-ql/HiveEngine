@@ -72,9 +72,25 @@ namespace HiveEngine {
     }
 
     void Node::calculate_next_step(unsigned ticks_per_second) {
+        bool inited = false;
+        glm::dvec3 last_com = physical_data()->center_of_mass;
+        if(physical_data()->total_mass > 0.0) {
+            last_com /= physical_data()->total_mass;
+            inited = true;
+        }
         if(parent == nullptr) calculate_mass_data();
 
-        physical_data()->next_position = physical_data()->position + (physical_data()->velocity / (double) ticks_per_second);
+        if(parent == nullptr && physical_data()->total_mass > 0.0 && inited){
+            glm::dvec3 com = physical_data()->center_of_mass / physical_data()->total_mass;
+            auto diff = last_com - com;
+            physical_data()->next_position = physical_data()->position + diff;
+        } else {
+            physical_data()->next_position = physical_data()->position;
+        }
+
+        physical_data()->next_position += (physical_data()->velocity / (double) ticks_per_second);
+
+
         glm::dquat rot_quat = glm::pow(glm::quat_cast(physical_data()->angular_velocity), 1.0f / (double) ticks_per_second);
         physical_data()->next_rotation = physical_data()->rotation * glm::mat3_cast(rot_quat);
         calculate_next_global();
@@ -112,6 +128,7 @@ namespace HiveEngine {
         } else {
             physical_data()->next_global_position = physical_data()->next_position;
             physical_data()->next_global_rotation = physical_data()->next_rotation;
+
         }
     }
 
@@ -203,13 +220,24 @@ namespace HiveEngine {
     }
 
     void Node::apply_force(Force force) {
-        if(parent) parent->apply_force(force);
+        if(parent){
+            Force adjusted;
+            adjusted.force = force.force;
+            adjusted.leverage = physical_data()->position + physical_data()->rotation * force.leverage;
+            adjusted.is_relative = force.is_relative;
+            parent->apply_force(adjusted);
+        }
         else{
-
+            Force adjusted;
+            adjusted.force = force.force;
+            adjusted.leverage = physical_data()->center_of_mass + force.leverage;
+            adjusted.is_relative = force.is_relative;
         }
     }
 
-    MassData Node::calculate_mass_data() {
+    void Node::calculate_mass_data(Node* root) {
+        physical_data()->mass = pow(physical_data()->radius, 10.0);
+
         if(scene_id > -1 && mesh_id > -1 && representation_mass_data.mass == 0.0 && physical_data()->mass > 0){
             if(context->asset_manager == nullptr){
                 spdlog::error("Asset manager is nullptr in context");
@@ -220,23 +248,55 @@ namespace HiveEngine {
             representation_mass_data.mass = physical_data()->mass;
         }
 
-        glm::dmat3 rot = physical_data()->rotation;
-
-        auto local_m_data = representation_mass_data;
-        if(parent){
-            local_m_data.position = rot * local_m_data.position;
-            local_m_data.moment_of_inertia = rot * local_m_data.moment_of_inertia;
+        if(valid_representation()){
+            physical_data()->total_mass = physical_data()->mass;
+            physical_data()->center_of_mass = (physical_data()->rotation * representation_mass_data.position) * physical_data()->mass;
+            physical_data()->moment_of_inertia = representation_mass_data.moment_of_inertia;
+        } else {
+            physical_data()->center_of_mass = {};
+            physical_data()->total_mass = 0;
+            physical_data()->moment_of_inertia = {};
         }
+
         for (int i = 0; i < children.size(); ++i) {
-            if(children.get_state(i)) {
-                auto child = children.get(i);
-                auto child_m_data = child->calculate_mass_data();
-                local_m_data.position += rot * child_m_data.position;
-                local_m_data.moment_of_inertia += rot * child_m_data.moment_of_inertia;
+            if(children.get_state(i)) children.get(i)->calculate_mass_data();
+        }
+
+        if(parent){
+            parent->physical_data()->total_mass += physical_data()->total_mass;
+            glm::dvec3 shift = physical_data()->center_of_mass + physical_data()->position;
+            parent->physical_data()->center_of_mass += parent->physical_data()->rotation * shift;
+            parent->physical_data()->moment_of_inertia += parent->physical_data()->rotation * ((physical_data()->moment_of_inertia + calculate_moment_of_inertia(shift, 1.0)));
+        }
+
+        /* Classic com calculation
+
+        if(root){
+            for (int i = 0; i < children.size(); ++i) {
+                if(children.get_state(i)) children.get(i)->calculate_mass_data(root);
+            }
+            root->physical_data()->total_mass += representation_mass_data.mass;
+            auto diff = physical_data()->global_position - root->physical_data()->global_position;
+            root->physical_data()->center_of_mass += (diff + (physical_data()->global_rotation * representation_mass_data.position)) * representation_mass_data.mass;
+        } else {
+            if(valid_representation()){
+                physical_data()->total_mass = physical_data()->mass;
+                physical_data()->center_of_mass = (physical_data()->global_rotation * representation_mass_data.position) * physical_data()->mass;
+            } else {
+                physical_data()->center_of_mass = {};
+                physical_data()->total_mass = 0;
+            }
+            for (int i = 0; i < children.size(); ++i) {
+                if(children.get_state(i)) children.get(i)->calculate_mass_data(this);
             }
         }
 
-        return local_m_data;
+         */
+
+    }
+
+    bool Node::valid_representation() {
+        return scene_id >= 0 && mesh_id >= 0;
     }
 
     Node* Context::load_ai_node(aiScene *scene, aiNode *root, int scene_id, Node* parent) {

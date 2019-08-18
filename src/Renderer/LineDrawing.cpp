@@ -26,6 +26,10 @@ HiveEngine::Renderer::LineDrawing::LineDrawing(HiveEngine::Renderer::Directive *
     camera_gpu_buffer.cpu_buffer = &camera_buffer;
     camera_gpu_buffer.usage = (VkBufferUsageFlagBits) (VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT |
                                                        VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+
+
+    line_gpu_buffer.cpu_buffer = &line_buffer;
+    line_gpu_buffer.usage = (VkBufferUsageFlagBits)(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
 }
 
 void HiveEngine::Renderer::LineDrawing::init(VkRenderPass render_pass) {
@@ -194,12 +198,9 @@ void HiveEngine::Renderer::LineDrawing::init(VkRenderPass render_pass) {
         throw std::runtime_error("failed to create graphics pipeline!");
     }
 
-
 }
 
 void HiveEngine::Renderer::LineDrawing::update() {
-    if (point_allocation == nullptr) line_buffer.mark_changed();
-
     VmaAllocator allocator = get_context()->get_allocator();
     camera_gpu_buffer.allocator = allocator;
 
@@ -209,32 +210,7 @@ void HiveEngine::Renderer::LineDrawing::update() {
     camera_buffer.set(0, package);
     camera_gpu_buffer.update();
 
-    if (line_buffer.is_changed()) {
-        point_allocation = nullptr;
-        vk_point_buffer = nullptr;
-
-        auto points = line_buffer.get_data();
-        auto states = line_buffer.get_state();
-
-        VkBufferCreateInfo bufferInfo = {VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
-
-        VmaAllocationCreateInfo allocInfo = {};
-        allocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
-
-        bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-        bufferInfo.size = sizeof(HiveEngine::Line) * line_buffer.size();
-        vmaCreateBuffer(get_context()->get_allocator(), &bufferInfo, &allocInfo, &vk_point_buffer, &point_allocation,
-                        nullptr);
-
-
-        if (line_buffer.size() > 0) {
-            void *data;
-
-            vmaMapMemory(get_context()->get_allocator(), point_allocation, &data);
-            memcpy(data, points.data(), (size_t) sizeof(HiveEngine::Line) * line_buffer.size());
-            vmaUnmapMemory(get_context()->get_allocator(), point_allocation);
-        }
-
+    if(camera_gpu_buffer.recreated){
         VkDescriptorBufferInfo cameraBufferInfo = {};
         cameraBufferInfo.buffer = camera_gpu_buffer.buffer;
         cameraBufferInfo.offset = 0;
@@ -256,9 +232,11 @@ void HiveEngine::Renderer::LineDrawing::update() {
         vkUpdateDescriptorSets(get_context()->get_device(), write_descriptors.size(), write_descriptors.data(), 0,
                                nullptr);
 
-        line_buffer.mark_unchanged();
+        camera_gpu_buffer.recreated = false;
     }
 
+    line_gpu_buffer.allocator = get_context()->get_allocator();
+    line_gpu_buffer.update();
 }
 
 void HiveEngine::Renderer::LineDrawing::draw(VkCommandBuffer cmd_buffer) {
@@ -268,7 +246,7 @@ void HiveEngine::Renderer::LineDrawing::draw(VkCommandBuffer cmd_buffer) {
         vkCmdBindPipeline(cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
 
         VkDeviceSize offsets[] = {0};
-        vkCmdBindVertexBuffers(cmd_buffer, 0, 1, &vk_point_buffer, offsets);
+        vkCmdBindVertexBuffers(cmd_buffer, 0, 1, &line_gpu_buffer.buffer, offsets);
 
         vkCmdBindDescriptorSets(cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0,
                                 nullptr);
@@ -278,10 +256,7 @@ void HiveEngine::Renderer::LineDrawing::draw(VkCommandBuffer cmd_buffer) {
 }
 
 void HiveEngine::Renderer::LineDrawing::cleanup() {
-    vmaDestroyBuffer(get_context()->get_allocator(), vk_point_buffer, point_allocation);
-    point_allocation = nullptr;
-    vk_point_buffer = nullptr;
-
+    line_gpu_buffer.cleanup();
     camera_gpu_buffer.cleanup();
 
     vkDestroyDescriptorSetLayout(get_context()->get_device(), descriptorSetLayout, nullptr);

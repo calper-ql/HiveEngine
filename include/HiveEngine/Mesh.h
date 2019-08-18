@@ -28,7 +28,7 @@ namespace HiveEngine {
         double calculate_surface_area();
         double __surface_area_value = 0;
 
-        glm::mat3 moment_of_inertia;
+        glm::dmat3 moment_of_inertia;
         glm::dvec3 center_of_mass = {};
 
         void calculate_moment_of_inertia();
@@ -41,7 +41,7 @@ namespace HiveEngine {
 
         double surface_area(bool recalculate=false);
 
-        glm::mat3 get_moment_of_inertia();
+        glm::dmat3 get_moment_of_inertia();
 
         glm::dvec3 get_center_of_mass();
 

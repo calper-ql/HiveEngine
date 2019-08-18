@@ -47,7 +47,11 @@ namespace HiveEngine::Renderer {
 
         int apply = 1;
 
+
+
     public:
+        float __mouse_wheel = 0.0;
+
         double traverse_modifier;
         double rotate_modifier;
 
@@ -81,7 +85,9 @@ namespace HiveEngine::Renderer {
 
         void set_as_mouse_wheel_callback(GLFWwindow *window);
 
-        float __mouse_wheel = 0.0;
+        float get_fov();
+
+
     };
 
 }
