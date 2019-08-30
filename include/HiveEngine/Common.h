@@ -49,6 +49,7 @@ namespace HiveEngine {
 
     class MassData {
     public:
+        bool recalculate = true;
         glm::dvec3 position = {};
         double mass = 0.0;
         glm::dmat3 moment_of_inertia = {};

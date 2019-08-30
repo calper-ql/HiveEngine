@@ -54,7 +54,6 @@ namespace HiveEngine {
             }
         }
 
-        __surface_area_value = calculate_surface_area();
         calculate_moment_of_inertia();
     }
 
@@ -64,9 +63,9 @@ namespace HiveEngine {
     }
 
     void Mesh::calculate_moment_of_inertia() {
-        double total_area = surface_area();
+        double total_area = surface_area(true);
 
-        glm::dmat3 moi = glm::dmat3(1.0);
+        glm::dmat3 moi = glm::dmat3(0.0);
         glm::dvec3 com = {0.0, 0.0, 0.0};
 
         for (auto face : indices) {

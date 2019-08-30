@@ -104,7 +104,7 @@ namespace HiveEngine::Renderer {
         if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
             double x, y;
             glfwGetCursorPos(window, &x, &y);
-            if (m_press == 0) {
+            if (m_press <= 4) {
                 m_press++;
                 glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
             } else {

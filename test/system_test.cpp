@@ -88,11 +88,11 @@ int main(int argc, char *argv[]) {
     c1.radius = 30.0;
     c2.radius = 50.0;
 
-    for (int j = 0; j < 300; ++j) {
+    for (int j = 0; j < 0; ++j) {
         new RandomEntity(&c1, re);
     }
 
-    for (int j = 0; j < 50; ++j) {
+    for (int j = 0; j < 0; ++j) {
         new RandomEntity(&c2, re);
     }
 
@@ -114,16 +114,6 @@ int main(int argc, char *argv[]) {
     c1.representation = mesh_drawing_handler;
 
     auto missile = am.scenes[0].context->root_nodes.get(0)->deep_copy(&c1);
-
-    missile->physical_data()->velocity = {0.01, 0.00, 0.0};
-    missile->physical_data()->angular_velocity = HiveEngine::generate_rotation_matrix('z', HiveEngine::PI/100.0);
-
-    HiveEngine::Force force;
-    force.leverage = {1.0, 0.0, 0.0};
-    force.force = {0.0, 100.0, 0.0};
-    force.is_relative = false;
-
-    missile->apply_force(force);
 
     //HiveEngine::Renderer::AABBDrawing aabb_drawing_1(&test_directive, &camera);
     //HiveEngine::Renderer::AABBDrawing aabb_drawing_2(test_directive, &camera);
@@ -147,15 +137,34 @@ int main(int argc, char *argv[]) {
 
         while(!glfwWindowShouldClose(renderer_context.get_window())){
 
+			if (glfwGetKey(renderer_context.get_window(), GLFW_KEY_J) == GLFW_PRESS) {
+				HiveEngine::Force force;
+				force.leverage = { 1.0, 0.0, 0.0 };
+				force.force = { 0.0, 1.0, 0.0 };
+				force.is_relative = false;
+
+				missile->apply_force(force);
+			}
+
+			if (glfwGetKey(renderer_context.get_window(), GLFW_KEY_L) == GLFW_PRESS) {
+				HiveEngine::Force force;
+				force.leverage = { -1.0, 0.0, 0.0 };
+				force.force = { 0.0, 1.0, 0.0 };
+				force.is_relative = false;
+
+				missile->apply_force(force);
+			}
+
 
             c1.calculate_next_step(60);
-            c2.calculate_next_step(60);
+            //2.calculate_next_step(60);
             c1.calculate_bounding_boxes();
-            c2.calculate_bounding_boxes();
+            //c2.calculate_bounding_boxes();
             c1.induce_next_step();
-            c2.induce_next_step();
+            //c2.induce_next_step();
 
             c1.update_representation();
+			std::cout << HiveEngine::dvec3_to_str(missile->physical_data()->position) << std::endl;
 
             tm_origin.set(missile->physical_data()->position, 0.1, {1.0, 1.0, 1.0, 1.0});
             tm_com.set(
@@ -171,6 +180,7 @@ int main(int argc, char *argv[]) {
             camera.set_perspective(camera.get_fov(), HiveEngine::Renderer::get_window_ratio(renderer_context.get_window()), 0.0001, 1000.0);
             glfwPollEvents();
             renderer_context.main_loop();
+
         }
 
         renderer_context.wait_device();

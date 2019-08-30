@@ -244,7 +244,7 @@ namespace HiveEngine {
     }
 
     glm::dmat3 calculate_moment_of_inertia(glm::dvec3 centroid, double area_ratio) {
-        glm::dmat3 moi;
+		glm::dmat3 moi(0.0);
 
         moi[0][0] += (area_ratio) * ((centroid.y * centroid.y) + (centroid.z * centroid.z));
         moi[1][1] += (area_ratio) * ((centroid.x * centroid.x) + (centroid.z * centroid.z));

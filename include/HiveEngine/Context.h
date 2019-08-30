@@ -99,6 +99,7 @@ namespace HiveEngine {
         void set_parent(Node* parent);
 
         void calculate_mass_data(Node* root=nullptr);
+		void calculate_moi_data(glm::dmat3* moi, glm::dvec3 position);
 
         NodePhysicalData* physical_data();
         unsigned get_level();
